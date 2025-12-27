@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-# main_app046.py
-# Kalkulator Dachów - v4.6
-# Zmiany:
+# main_app044.py
+# Kalkulator Dachów - v4.7
+# 
+# Integrated with modular app/ structure:
+# - Uses formatting utilities from app.utils.formatting
+# - Uses dialog classes from app.ui.dialogs
+# - Maintains backward compatibility with fallback implementations
+# 
+# Zmiany v4.6:
 # - Ulepszony UI z nowoczesnym stylem i lepszymi kolorami
 # - Dodano zakładki do obliczeń dachowych (pomiar, rynny, kominy, obróbki, drewno)
 # - Ulepszony eksport PDF z profesjonalnym wyglądem
 # - Lepsza walidacja danych wejściowych i UX
 # - Przechowywanie ostatniego numeru kosztorysu w settings.json
 #
+# Zmiany v4.7:
+# - Integracja z modułową strukturą app/ (utilities, dialogs)
+# - Zachowana pełna kompatybilność wsteczna
+#
 # Wymagane (opcjonalne do PDF/logo): pip install reportlab pillow
 #
-# Uruchom: python3.12 main_app046.py
+# Uruchom: python main_app044.py
 
 from typing import List, Dict, Any, Optional
 import tkinter as tk
@@ -50,7 +60,9 @@ try:
 except ImportError:
     CALC_MODULES_AVAILABLE = False
 
-# Import app modules (new modular structure)
+# Import app modules (new modular structure from app/)
+# These provide utilities, dialogs, and future tab components
+# Fallback implementations provided below for backward compatibility
 try:
     from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text
     from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
