@@ -64,7 +64,7 @@ except ImportError:
 # These provide utilities, dialogs, and future tab components
 # Fallback implementations provided below for backward compatibility
 try:
-    from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text
+    from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text, safe_filename
     from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
     APP_MODULES_AVAILABLE = True
 except ImportError:
@@ -104,6 +104,13 @@ if not APP_MODULES_AVAILABLE:
         if s == "" or s == "-" or s == ".": return True
         s = s.replace(",", ".")
         return bool(re.match(r'^\d+(\.\d{0,3})?$', s))
+    
+    def safe_filename(s: str, maxlen: int = 140) -> str:
+        s = s or ""
+        s = s.strip()
+        s = s.replace(" ", "_")
+        s = re.sub(r'[^\w\-\._]', '', s)
+        return s[:maxlen]
 
 def apply_modern_style(root):
     """Apply modern styling to ttk widgets."""
@@ -209,13 +216,6 @@ def find_system_font_possibilities() -> Optional[str]:
                     return os.path.join(root, f)
     return None
 
-def safe_filename(s: str, maxlen: int = 140) -> str:
-    s = s or ""
-    s = s.strip()
-    s = s.replace(" ", "_")
-    s = re.sub(r'[^\w\-\._]', '', s)
-    return s[:maxlen]
-
 def compute_totals_local(items: List[Dict[str,Any]], transport_percent: float = 0.0, transport_vat: int = 23) -> Dict[str,Any]:
     res_items = []
     by_vat: Dict[int, Dict[str,float]] = {}
@@ -243,7 +243,6 @@ def compute_totals_local(items: List[Dict[str,Any]], transport_percent: float = 
     summary = {"net": round(total_net + transport_net,2), "vat": round(total_vat + transport_vat_val,2), "gross": round(total_gross + transport_gross,2)}
     return {"items": res_items, "by_vat": by_vat, "by_category": by_cat, "transport": {"percent":transport_percent,"net":transport_net,"vat":transport_vat_val,"gross":transport_gross}, "summary": summary}
 
-# ---------------- Dialogs ----------------
 # ---------------- Main App ----------------
 # Dialog classes imported from app.ui.dialogs
 # Fallback definitions if app modules not available
