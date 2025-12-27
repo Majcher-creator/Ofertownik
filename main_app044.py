@@ -496,15 +496,24 @@ class RoofCalculatorApp:
     def setup_keyboard_shortcuts(self):
         """Setup global keyboard shortcuts for the application"""
         # Global shortcuts - support both Control (Windows/Linux) and Command (macOS)
-        modifiers = ['<Control-', '<Command-'] if platform.system() == 'Darwin' else ['<Control-']
+        is_macos = platform.system() == 'Darwin'
         
-        for mod in modifiers:
-            self.master.bind(f'{mod}n>', lambda e: self.new_cost_estimate())
-            self.master.bind(f'{mod}s>', lambda e: self.save_costfile())
-            self.master.bind(f'{mod}o>', lambda e: self.load_costfile())
-            self.master.bind(f'{mod}p>', lambda e: self.export_cost_pdf())
-            self.master.bind(f'{mod}e>', lambda e: self.export_cost_csv())
-            self.master.bind(f'{mod}q>', lambda e: self.master.quit())
+        # Bind Control shortcuts
+        self.master.bind('<Control-n>', lambda e: self.new_cost_estimate())
+        self.master.bind('<Control-s>', lambda e: self.save_costfile())
+        self.master.bind('<Control-o>', lambda e: self.load_costfile())
+        self.master.bind('<Control-p>', lambda e: self.export_cost_pdf())
+        self.master.bind('<Control-e>', lambda e: self.export_cost_csv())
+        self.master.bind('<Control-q>', lambda e: self.master.quit())
+        
+        # Also bind Command shortcuts on macOS
+        if is_macos:
+            self.master.bind('<Command-n>', lambda e: self.new_cost_estimate())
+            self.master.bind('<Command-s>', lambda e: self.save_costfile())
+            self.master.bind('<Command-o>', lambda e: self.load_costfile())
+            self.master.bind('<Command-p>', lambda e: self.export_cost_pdf())
+            self.master.bind('<Command-e>', lambda e: self.export_cost_csv())
+            self.master.bind('<Command-q>', lambda e: self.master.quit())
         
         self.master.bind('<F5>', lambda e: self.calculate_cost_estimation())
         self.master.bind('<F1>', lambda e: self.show_help())
@@ -606,7 +615,7 @@ Wersja: 4.7
         status.pack(fill='x', side='bottom')
         
         self.status_label = tk.Label(status, 
-            text="Ctrl+S: Zapisz | Ctrl+O: Otwórz | F5: Oblicz | Del: Usuń | Enter: Edytuj | Ctrl+A: Zaznacz wszystkie | F1: Pomoc",
+            text="Ctrl+S: Zapisz | Ctrl+O: Wczytaj | F5: Oblicz | Del: Usuń | Ctrl+A: Zaznacz | F1: Pomoc",
             font=('Segoe UI', 9),
             bg=COLORS['border'], fg=COLORS['text_dark'])
         self.status_label.pack(side='left', padx=10)
@@ -899,24 +908,29 @@ Wersja: 4.7
         self.mat_context_menu = self.create_context_menu(self.mat_tree, "material")
         self.srv_context_menu = self.create_context_menu(self.srv_tree, "service")
         
-        # Bind keyboard shortcuts for both trees
-        for tree, kind in [(self.mat_tree, "material"), (self.srv_tree, "service")]:
-            # Double-click to edit
-            tree.bind("<Double-1>", lambda e, k=kind: self._edit_from_tree(k))
-            # Right-click for context menu
-            tree.bind("<Button-3>", lambda e, m=(self.mat_context_menu if kind == "material" else self.srv_context_menu): self.show_context_menu(e, m))
-            # Delete key
-            tree.bind("<Delete>", lambda e, k=kind: self._delete_from_tree(k))
-            # Enter key to edit
-            tree.bind("<Return>", lambda e, k=kind: self._edit_from_tree(k))
-            # Ctrl+A to select all
-            tree.bind("<Control-a>", lambda e, k=kind: self._select_all(k))
-            # Ctrl+D to duplicate
-            tree.bind("<Control-d>", lambda e, k=kind: self._duplicate_items(k))
-            # Ctrl+Up to move up
-            tree.bind("<Control-Up>", lambda e, k=kind: self._move_item_up(k))
-            # Ctrl+Down to move down
-            tree.bind("<Control-Down>", lambda e, k=kind: self._move_item_down(k))
+        # Bind keyboard shortcuts for materials tree
+        self._bind_tree_shortcuts(self.mat_tree, "material", self.mat_context_menu)
+        # Bind keyboard shortcuts for services tree
+        self._bind_tree_shortcuts(self.srv_tree, "service", self.srv_context_menu)
+
+    def _bind_tree_shortcuts(self, tree, kind, context_menu):
+        """Bind keyboard shortcuts for a specific tree"""
+        # Double-click to edit
+        tree.bind("<Double-1>", lambda e, k=kind: self._edit_from_tree(k))
+        # Right-click for context menu
+        tree.bind("<Button-3>", lambda e, m=context_menu: self.show_context_menu(e, m))
+        # Delete key
+        tree.bind("<Delete>", lambda e, k=kind: self._delete_from_tree(k))
+        # Enter key to edit
+        tree.bind("<Return>", lambda e, k=kind: self._edit_from_tree(k))
+        # Ctrl+A to select all
+        tree.bind("<Control-a>", lambda e, k=kind: self._select_all(k))
+        # Ctrl+D to duplicate
+        tree.bind("<Control-d>", lambda e, k=kind: self._duplicate_items(k))
+        # Ctrl+Up to move up
+        tree.bind("<Control-Up>", lambda e, k=kind: self._move_item_up(k))
+        # Ctrl+Down to move down
+        tree.bind("<Control-Down>", lambda e, k=kind: self._move_item_down(k))
 
     def create_context_menu(self, tree, kind):
         """Create context menu for tree view"""
@@ -1053,14 +1067,17 @@ Wersja: 4.7
             return
         
         # Move each item up
+        new_selection = []
         for idx in indices:
             if idx > 0:
                 self.cost_items[idx], self.cost_items[idx-1] = self.cost_items[idx-1], self.cost_items[idx]
+                new_selection.append(str(idx-1))
+            else:
+                new_selection.append(str(idx))
         
         self._refresh_cost_ui()
         
-        # Reselect moved items
-        new_selection = [str(idx-1) if idx > 0 else str(idx) for idx in indices]
+        # Reselect moved items at their new positions
         tree.selection_set(new_selection)
 
     def _move_item_down(self, kind: str):
@@ -1080,14 +1097,17 @@ Wersja: 4.7
             return
         
         # Move each item down
+        new_selection = []
         for idx in indices:
             if idx < len(self.cost_items) - 1:
                 self.cost_items[idx], self.cost_items[idx+1] = self.cost_items[idx+1], self.cost_items[idx]
+                new_selection.append(str(idx+1))
+            else:
+                new_selection.append(str(idx))
         
         self._refresh_cost_ui()
         
-        # Reselect moved items
-        new_selection = [str(idx+1) if idx < len(self.cost_items)-1 else str(idx) for idx in indices]
+        # Reselect moved items at their new positions
         tree.selection_set(new_selection)
 
     def _change_category(self, current_kind: str):
