@@ -1,9 +1,32 @@
 # chimney_calculations.py
+"""
+Chimney flashing and insulation calculations module.
+Provides functions for calculating materials needed for chimney flashings and insulation.
+"""
+
+from typing import Dict
 import math
 
-def calculate_chimney_flashings(width_m, length_m, height_above_roof_m, roof_angle_deg, roof_covering_type, num_chimneys=1):
+
+def calculate_chimney_flashings(width_m: float, length_m: float, height_above_roof_m: float, 
+                                roof_angle_deg: float, roof_covering_type: str, 
+                                num_chimneys: int = 1) -> Dict[str, float]:
     """
     Oblicza potrzebne materiały do obróbki komina.
+    
+    Args:
+        width_m: Szerokość komina w metrach
+        length_m: Długość komina w metrach
+        height_above_roof_m: Wysokość komina nad dachem w metrach
+        roof_angle_deg: Kąt nachylenia dachu w stopniach
+        roof_covering_type: Typ pokrycia dachowego ("blacha", "dachówka", "papa", etc.)
+        num_chimneys: Liczba kominów
+        
+    Returns:
+        Słownik z obliczeniami materiałów do obróbki komina
+        
+    Raises:
+        ValueError: Jeśli którykolwiek z wymiarów jest ujemny lub kąt poza zakresem 0-90
     """
     if any(val < 0 for val in [width_m, length_m, height_above_roof_m, num_chimneys]):
         raise ValueError("Wszystkie wymiary komina i liczba kominów nie mogą być ujemne.")
@@ -71,9 +94,19 @@ def calculate_chimney_flashings(width_m, length_m, height_above_roof_m, roof_ang
         "single_chimney_perimeter": perimeter
     }
 
-def calculate_chimney_insulation(width_m, length_m, height_above_roof_m, num_chimneys=1):
+def calculate_chimney_insulation(width_m: float, length_m: float, height_above_roof_m: float, 
+                                num_chimneys: int = 1) -> Dict[str, float]:
     """
     Oblicza powierzchnię do ocieplenia komina i siatki z klejem.
+    
+    Args:
+        width_m: Szerokość komina w metrach
+        length_m: Długość komina w metrach
+        height_above_roof_m: Wysokość komina nad dachem w metrach
+        num_chimneys: Liczba kominów
+        
+    Returns:
+        Słownik z obliczeniami powierzchni ocieplenia i siatki
     """
     if any(val <= 0 for val in [width_m, length_m, height_above_roof_m, num_chimneys]):
         return {

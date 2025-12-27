@@ -1,14 +1,37 @@
 # roof_calculations.py
+"""
+Roof geometry calculations module.
+Provides functions for calculating roof dimensions, areas, and material lengths.
+"""
+
+from typing import Dict, Optional
 import math
 
-def degrees_to_radians(degrees):
-    """Konwertuje stopnie na radiany."""
+
+def degrees_to_radians(degrees: float) -> float:
+    """
+    Konwertuje stopnie na radiany.
+    
+    Args:
+        degrees: Kąt w stopniach
+        
+    Returns:
+        Kąt w radianach
+    """
     return math.radians(degrees)
 
-def calculate_slant_length(horizontal_length, angle_degrees):
+
+def calculate_slant_length(horizontal_length: float, angle_degrees: float) -> float:
     """
     Oblicza długość skośną (np. krokwi) na podstawie długości poziomej
     i kąta nachylenia w stopniach.
+    
+    Args:
+        horizontal_length: Długość pozioma w metrach
+        angle_degrees: Kąt nachylenia w stopniach
+        
+    Returns:
+        Długość skośna w metrach
     """
     if angle_degrees == 90:
         return float('inf') 
@@ -21,18 +44,39 @@ def calculate_slant_length(horizontal_length, angle_degrees):
         
     return horizontal_length / math.cos(angle_radians)
 
-def calculate_horizontal_length(slant_length, angle_degrees):
+
+def calculate_horizontal_length(slant_length: float, angle_degrees: float) -> float:
     """
     Oblicza długość poziomą na podstawie długości skośnej
     i kąta nachylenia w stopniach.
+    
+    Args:
+        slant_length: Długość skośna w metrach
+        angle_degrees: Kąt nachylenia w stopniach
+        
+    Returns:
+        Długość pozioma w metrach
     """
     if angle_degrees is None:
         return slant_length
     angle_radians = degrees_to_radians(angle_degrees)
     return slant_length * math.cos(angle_radians)
 
-def calculate_single_slope_roof(dl, szer, angle_degrees=None, is_real_dimensions=False):
-    """Oblicza długości dla dachu jednospadowego."""
+def calculate_single_slope_roof(dl: float, szer: float, angle_degrees: Optional[float] = None, 
+                               is_real_dimensions: bool = False) -> Dict[str, float]:
+    """
+    Oblicza długości dla dachu jednospadowego.
+    
+    Args:
+        dl: Długość dachu w metrach
+        szer: Szerokość dachu w metrach
+        angle_degrees: Kąt nachylenia w stopniach (wymagany dla wymiarów poziomych)
+        is_real_dimensions: Czy wymiary są rzeczywiste (True) czy poziome (False)
+        
+    Returns:
+        Słownik z obliczeniami: dlugosc_okapu, dlugosc_gasiorow, dlugosc_wiatrownic,
+        powierzchnia_dachu, dlugosc_koszy, slant_rafter_length, roof_angle_deg
+    """
     results = {
         "dlugosc_okapu": 0.0,
         "dlugosc_gasiorow": 0.0,
@@ -64,8 +108,21 @@ def calculate_single_slope_roof(dl, szer, angle_degrees=None, is_real_dimensions
     results["dlugosc_koszy"] = 0.0
     return results
 
-def calculate_gable_roof(dl, szer, angle_degrees=None, is_real_dimensions=False):
-    """Oblicza długości dla dachu dwuspadowego."""
+def calculate_gable_roof(dl: float, szer: float, angle_degrees: Optional[float] = None, 
+                        is_real_dimensions: bool = False) -> Dict[str, float]:
+    """
+    Oblicza długości dla dachu dwuspadowego.
+    
+    Args:
+        dl: Długość dachu w metrach
+        szer: Szerokość dachu w metrach
+        angle_degrees: Kąt nachylenia w stopniach (wymagany dla wymiarów poziomych)
+        is_real_dimensions: Czy wymiary są rzeczywiste (True) czy poziome (False)
+        
+    Returns:
+        Słownik z obliczeniami: dlugosc_okapu, dlugosc_gasiorow, dlugosc_wiatrownic,
+        powierzchnia_dachu, dlugosc_koszy, slant_rafter_length, roof_angle_deg
+    """
     results = {
         "dlugosc_okapu": 0.0,
         "dlugosc_gasiorow": 0.0,
@@ -103,8 +160,24 @@ def calculate_gable_roof(dl, szer, angle_degrees=None, is_real_dimensions=False)
     results["dlugosc_koszy"] = 0.0
     return results
 
-def calculate_hip_roof(dl, szer, angle_degrees=None, is_real_dimensions=False):
-    """Oblicza długości dla dachu kopertowego (czterospadowego)."""
+def calculate_hip_roof(dl: float, szer: float, angle_degrees: Optional[float] = None, 
+                      is_real_dimensions: bool = False) -> Dict[str, float]:
+    """
+    Oblicza długości dla dachu kopertowego (czterospadowego).
+    
+    Args:
+        dl: Długość podstawy dachu w metrach
+        szer: Szerokość podstawy dachu w metrach
+        angle_degrees: Kąt nachylenia w stopniach (zawsze wymagany)
+        is_real_dimensions: Czy wymiary są rzeczywiste (True) czy poziome (False)
+        
+    Returns:
+        Słownik z obliczeniami: dlugosc_okapu, dlugosc_gasiorow, dlugosc_wiatrownic,
+        powierzchnia_dachu, dlugosc_koszy, slant_rafter_length, roof_angle_deg
+        
+    Raises:
+        ValueError: Jeśli angle_degrees nie jest podany
+    """
     results = {
         "dlugosc_okapu": 0.0,
         "dlugosc_gasiorow": 0.0,

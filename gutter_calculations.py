@@ -1,17 +1,29 @@
 # gutter_calculations.py
+"""
+Gutter and downpipe calculations module.
+Provides functions for calculating guttering system components and accessories.
+"""
+
+from typing import Dict, Optional
 import math
 
-def calculate_guttering(okap_length_m, roof_height_m, num_downpipes=None):
+
+def calculate_guttering(okap_length_m: float, roof_height_m: float, 
+                       num_downpipes: Optional[int] = None) -> Dict[str, float]:
     """
     Oblicza potrzebne orynnowanie, rury spustowe i akcesoria.
 
     Args:
-        okap_length_m (float): Całkowita długość okapu dachu w metrach.
-        roof_height_m (float): Wysokość dachu od okapu do ziemi w metrach (długość pojedynczej rury spustowej).
-        num_downpipes (int, optional): Liczba rur spustowych. Jeśli None, zostanie oszacowana.
+        okap_length_m: Całkowita długość okapu dachu w metrach
+        roof_height_m: Wysokość dachu od okapu do ziemi w metrach (długość pojedynczej rury spustowej)
+        num_downpipes: Liczba rur spustowych. Jeśli None, zostanie oszacowana
 
     Returns:
-        dict: Słownik z długościami rynien, rur, oraz szacowaną liczbą akcesoriów.
+        Słownik z długościami rynien, rur, oraz szacowaną liczbą akcesoriów
+        
+    Raises:
+        ValueError: Jeśli długość okapu lub wysokość dachu są ujemne,
+                   lub jeśli liczba rur spustowych jest ujemna
     """
     if okap_length_m < 0 or roof_height_m < 0:
         raise ValueError("Długość okapu i wysokość dachu nie mogą być ujemne.")
