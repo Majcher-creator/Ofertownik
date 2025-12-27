@@ -66,9 +66,11 @@ except ImportError:
 try:
     from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text, safe_filename
     from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
+    from app.services.pdf_preview import PDFPreview
     APP_MODULES_AVAILABLE = True
 except ImportError:
     APP_MODULES_AVAILABLE = False
+    PDFPreview = None
 
 # ---------------- Color Theme ----------------
 # Modern color palette for roofing application
@@ -679,6 +681,7 @@ class RoofCalculatorApp:
         
         ttk.Button(toolbar_inner, text="📊 Oblicz kosztorys", command=self.calculate_cost_estimation, style='Accent.TButton').pack(side="left", padx=4)
         ttk.Button(toolbar_inner, text="📄 Eksportuj CSV", command=self.export_cost_csv).pack(side="left", padx=4)
+        ttk.Button(toolbar_inner, text="👁️ Podgląd PDF", command=self.preview_cost_pdf, style='Info.TButton').pack(side="left", padx=4)
         ttk.Button(toolbar_inner, text="📑 Eksportuj PDF", command=self.export_cost_pdf, style='Success.TButton').pack(side="left", padx=4)
         ttk.Button(toolbar_inner, text="📦 Wstaw z bazy", command=self.manage_materials_db).pack(side="right", padx=4)
         ttk.Button(toolbar_inner, text="👥 Klienci", command=self.manage_clients).pack(side="right", padx=4)
@@ -1129,18 +1132,22 @@ class RoofCalculatorApp:
         except Exception as e:
             messagebox.showerror("Błąd", f"Nie udało się zapisać CSV:\n{e}")
 
-    # export PDF (kept from previous working implementation)
-    def export_cost_pdf(self):
-        if not REPORTLAB_AVAILABLE:
-            messagebox.showerror("Brak biblioteki","Zainstaluj reportlab: pip install reportlab"); return
-        if not self.cost_items:
-            messagebox.showwarning("Brak pozycji","Brak pozycji do eksportu."); return
+    # helper method for PDF generation (used by both export and preview)
+    def _generate_pdf_to_path(self, path: str) -> None:
+        """
+        Generate PDF document to the specified path.
+        
+        Args:
+            path: File path where the PDF should be saved
+            
+        Raises:
+            Exception: If PDF generation fails
+        """
         totals = compute_totals_local(self.cost_items, float(self.transport_percent.get() or 0.0), int(self.transport_vat.get() or 23))
         items_aug = totals["items"]
         materials = [it for it in items_aug if it.get("category","material")=="material"]
         services = [it for it in items_aug if it.get("category","material")=="service"]
-        path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF","*.pdf"),("All","*.*")])
-        if not path: return
+        
         doc = SimpleDocTemplate(path, pagesize=portrait(A4), leftMargin=15*mm, rightMargin=15*mm, topMargin=15*mm, bottomMargin=15*mm)
         styles = getSampleStyleSheet(); base_font = self._registered_pdf_font_name or styles['Normal'].fontName
         normal = ParagraphStyle("NormalApp", parent=styles['Normal'], fontName=base_font, fontSize=9, leading=12)
@@ -1313,11 +1320,25 @@ class RoofCalculatorApp:
         footer_style = ParagraphStyle("FooterApp", parent=normal, fontSize=12, leading=14, alignment=1, textColor=colors.HexColor("#E67E22"))
         elems.append(Paragraph("<b>TYLKO DACHY TYLKO VICTOR</b>", footer_style))
         
+        # Build the PDF
+        doc.build(elems)
+
+    # export PDF (kept from previous working implementation)
+    def export_cost_pdf(self):
+        if not REPORTLAB_AVAILABLE:
+            messagebox.showerror("Brak biblioteki","Zainstaluj reportlab: pip install reportlab"); return
+        if not self.cost_items:
+            messagebox.showwarning("Brak pozycji","Brak pozycji do eksportu."); return
+        
+        path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF","*.pdf"),("All","*.*")])
+        if not path: return
+        
         try:
-            doc.build(elems)
+            self._generate_pdf_to_path(path)
             messagebox.showinfo("PDF wygenerowany", f"Zapisano PDF: {path}")
         except Exception as e:
             messagebox.showerror("Błąd PDF", f"Nie udało się wygenerować PDF:\n{e}"); return
+        
         if self.open_pdf_after.get():
             try:
                 if platform.system()=="Windows":
@@ -1330,6 +1351,49 @@ class RoofCalculatorApp:
                         subprocess.Popen(["xdg-open", path], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except Exception:
                 pass
+    
+    # preview PDF in default application before saving
+    def preview_cost_pdf(self):
+        """Preview PDF in default system application before saving."""
+        if not REPORTLAB_AVAILABLE:
+            messagebox.showerror("Brak biblioteki","Zainstaluj reportlab: pip install reportlab"); return
+        if not self.cost_items:
+            messagebox.showwarning("Brak pozycji","Brak pozycji do eksportu."); return
+        if not PDFPreview:
+            messagebox.showerror("Błąd","Nie można zaimportować modułu PDFPreview."); return
+        
+        # Generate preview
+        temp_path = PDFPreview.preview_pdf(self._generate_pdf_to_path)
+        
+        if not temp_path:
+            messagebox.showerror("Błąd podglądu", "Nie udało się wygenerować podglądu PDF.")
+            return
+        
+        # Ask user if they want to save the document
+        result = messagebox.askyesno(
+            "Zapisać kosztorys?",
+            "Czy chcesz zapisać ten kosztorys do pliku?\n\n"
+            "Kliknij 'Tak' aby wybrać lokalizację zapisu,\n"
+            "lub 'Nie' aby zamknąć podgląd bez zapisywania."
+        )
+        
+        if result:
+            # User wants to save - open file dialog
+            path = filedialog.asksaveasfilename(
+                defaultextension=".pdf",
+                filetypes=[("PDF","*.pdf"),("All","*.*")]
+            )
+            if path:
+                try:
+                    # Copy temp file to chosen location
+                    import shutil
+                    shutil.copy2(temp_path, path)
+                    messagebox.showinfo("PDF zapisany", f"Zapisano PDF: {path}")
+                except Exception as e:
+                    messagebox.showerror("Błąd zapisu", f"Nie udało się zapisać PDF:\n{e}")
+        
+        # Clean up temporary file
+        PDFPreview.cleanup_temp_file(temp_path)
 
     # save/load costfile (include comment) - when saving, update last_invoice_seq in settings based on current invoice_number
     def save_costfile(self):
