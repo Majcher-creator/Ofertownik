@@ -421,8 +421,11 @@ class RoofCalculatorApp:
         self.create_gutter_tab()
         self.create_chimney_tab()
         self.create_flashing_tab()
+        self.create_status_bar()
         # set next invoice number on startup (uses settings.json stored sequence)
         self._set_next_invoice_number()
+        # setup keyboard shortcuts
+        self.setup_keyboard_shortcuts()
 
     # persistence helpers
     def _local_appdir(self):
@@ -492,6 +495,61 @@ class RoofCalculatorApp:
         year = datetime.now().year
         self.invoice_number.set(f"{year}-{seq:03d}")
 
+    def setup_keyboard_shortcuts(self):
+        """Setup global keyboard shortcuts for the application"""
+        # Global shortcuts - support both Control (Windows/Linux) and Command (macOS)
+        is_macos = platform.system() == 'Darwin'
+        
+        # Bind Control shortcuts
+        self.master.bind('<Control-n>', lambda e: self.new_cost_estimate())
+        self.master.bind('<Control-s>', lambda e: self.save_costfile())
+        self.master.bind('<Control-o>', lambda e: self.load_costfile())
+        self.master.bind('<Control-p>', lambda e: self.export_cost_pdf())
+        self.master.bind('<Control-e>', lambda e: self.export_cost_csv())
+        self.master.bind('<Control-q>', lambda e: self.master.quit())
+        
+        # Also bind Command shortcuts on macOS
+        if is_macos:
+            self.master.bind('<Command-n>', lambda e: self.new_cost_estimate())
+            self.master.bind('<Command-s>', lambda e: self.save_costfile())
+            self.master.bind('<Command-o>', lambda e: self.load_costfile())
+            self.master.bind('<Command-p>', lambda e: self.export_cost_pdf())
+            self.master.bind('<Command-e>', lambda e: self.export_cost_csv())
+            self.master.bind('<Command-q>', lambda e: self.master.quit())
+        
+        self.master.bind('<F5>', lambda e: self.calculate_cost_estimation())
+        self.master.bind('<F1>', lambda e: self.show_help())
+
+    def show_help(self):
+        """Display help dialog with keyboard shortcuts"""
+        help_text = """🏠 Kalkulator Dachów - Pomoc
+
+SKRÓTY KLAWIATUROWE:
+
+Główne:
+  Ctrl+N  - Nowy kosztorys
+  Ctrl+S  - Zapisz kosztorys
+  Ctrl+O  - Wczytaj kosztorys
+  Ctrl+P  - Eksport PDF
+  Ctrl+E  - Eksport CSV
+  F5      - Oblicz/Przelicz kosztorys
+  Ctrl+Q  - Zamknij aplikację
+  F1      - Pomoc (to okno)
+
+Listy materiałów/usług:
+  Enter   - Edytuj zaznaczoną pozycję
+  Delete  - Usuń zaznaczone pozycje
+  Ctrl+A  - Zaznacz wszystkie
+  Ctrl+D  - Duplikuj zaznaczone
+  Ctrl+↑  - Przesuń w górę
+  Ctrl+↓  - Przesuń w dół
+  Prawy przycisk myszy - Menu kontekstowe
+
+Wersja: 4.7
+© 2024 VICTOR TOMASZ MAJCHERCZYK"""
+        
+        messagebox.showinfo("Pomoc - Kalkulator Dachów", help_text)
+
     # header bar with company info and quick actions
     def create_header_bar(self):
         header = tk.Frame(self.master, bg=COLORS['primary'], height=60)
@@ -526,9 +584,9 @@ class RoofCalculatorApp:
     def create_menu(self):
         menubar = tk.Menu(self.master); self.master.config(menu=menubar)
         file_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Plik", menu=file_menu)
-        file_menu.add_command(label="Nowy kosztorys", command=self.new_cost_estimate)
-        file_menu.add_command(label="Zapisz kosztorys (.cost.json)", command=self.save_costfile)
-        file_menu.add_command(label="Wczytaj kosztorys (.cost.json)", command=self.load_costfile)
+        file_menu.add_command(label="Nowy kosztorys", command=self.new_cost_estimate, accelerator="Ctrl+N")
+        file_menu.add_command(label="Zapisz kosztorys (.cost.json)", command=self.save_costfile, accelerator="Ctrl+S")
+        file_menu.add_command(label="Wczytaj kosztorys (.cost.json)", command=self.load_costfile, accelerator="Ctrl+O")
         file_menu.add_separator()
         file_menu.add_command(label="Profile firmy...", command=self.open_company_profiles_dialog)
         file_menu.add_separator()
@@ -537,10 +595,32 @@ class RoofCalculatorApp:
         file_menu.add_separator()
         file_menu.add_command(label="Zapisz ustawienia", command=self._save_settings)
         file_menu.add_separator()
-        file_menu.add_command(label="Wyjście", command=self.master.quit)
+        file_menu.add_command(label="Wyjście", command=self.master.quit, accelerator="Ctrl+Q")
+        
+        export_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Eksport", menu=export_menu)
+        export_menu.add_command(label="Eksportuj PDF", command=self.export_cost_pdf, accelerator="Ctrl+P")
+        export_menu.add_command(label="Eksportuj CSV", command=self.export_cost_csv, accelerator="Ctrl+E")
+        
+        calc_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Obliczenia", menu=calc_menu)
+        calc_menu.add_command(label="Oblicz kosztorys", command=self.calculate_cost_estimation, accelerator="F5")
+        
         company_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Firma", menu=company_menu)
         company_menu.add_command(label="Edytuj dane firmy (aktualne)", command=self.edit_current_company)
         company_menu.add_command(label="Wybierz logo...", command=self.select_logo)
+        
+        help_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Pomoc", menu=help_menu)
+        help_menu.add_command(label="O programie / Pomoc", command=self.show_help, accelerator="F1")
+
+    def create_status_bar(self):
+        """Create status bar at the bottom showing keyboard shortcuts"""
+        status = tk.Frame(self.master, bg=COLORS['border'], height=25)
+        status.pack(fill='x', side='bottom')
+        
+        self.status_label = tk.Label(status, 
+            text="Ctrl+S: Zapisz | Ctrl+O: Wczytaj | F5: Oblicz | Del: Usuń | Ctrl+A: Zaznacz | F1: Pomoc",
+            font=('Segoe UI', 9),
+            bg=COLORS['border'], fg=COLORS['text_dark'])
+        self.status_label.pack(side='left', padx=10)
 
     def new_cost_estimate(self):
         if self.cost_items or (hasattr(self,"comment_text") and self.comment_text.get("1.0","end").strip()):
@@ -712,7 +792,7 @@ class RoofCalculatorApp:
         mat_tree_container = ttk.Frame(mat_frame)
         mat_tree_container.pack(fill="both", expand=True, padx=6, pady=6)
         mat_cols = ("name","qty","unit","price_net","net")
-        self.mat_tree = ttk.Treeview(mat_tree_container, columns=mat_cols, show="headings", selectmode="browse")
+        self.mat_tree = ttk.Treeview(mat_tree_container, columns=mat_cols, show="headings", selectmode="extended")
         for c,h in zip(mat_cols,("Nazwa","Ilość","JM","Cena netto","Wartość netto")):
             self.mat_tree.heading(c, text=h)
             self.mat_tree.column(c, width=320 if c=="name" else 90, anchor="w" if c=="name" else "e")
@@ -730,7 +810,7 @@ class RoofCalculatorApp:
         srv_tree_container = ttk.Frame(srv_frame)
         srv_tree_container.pack(fill="both", expand=True, padx=6, pady=6)
         srv_cols = ("name","qty","unit","price_net","net")
-        self.srv_tree = ttk.Treeview(srv_tree_container, columns=srv_cols, show="headings", selectmode="browse")
+        self.srv_tree = ttk.Treeview(srv_tree_container, columns=srv_cols, show="headings", selectmode="extended")
         for c,h in zip(srv_cols,("Nazwa","Ilość","JM","Cena netto","Wartość netto")):
             self.srv_tree.heading(c, text=h)
             self.srv_tree.column(c, width=320 if c=="name" else 90, anchor="w" if c=="name" else "e")
@@ -820,11 +900,62 @@ class RoofCalculatorApp:
         self.comment_text = tk.Text(summary_frame, height=5, bg=COLORS['bg_white'], font=("Segoe UI", 9))
         self.comment_text.pack(fill="both", expand=False, padx=4, pady=(0,6))
 
-        # double-click edit bindings
-        self.mat_tree.bind("<Double-1>", lambda e: self._edit_from_tree("material"))
-        self.srv_tree.bind("<Double-1>", lambda e: self._edit_from_tree("service"))
+        # Keyboard shortcuts and context menu for trees
+        self._setup_tree_bindings()
 
         self._refresh_cost_ui()
+
+    def _setup_tree_bindings(self):
+        """Setup keyboard shortcuts and context menus for Treeview lists"""
+        # Create context menus
+        self.mat_context_menu = self.create_context_menu(self.mat_tree, "material")
+        self.srv_context_menu = self.create_context_menu(self.srv_tree, "service")
+        
+        # Bind keyboard shortcuts for materials tree
+        self._bind_tree_shortcuts(self.mat_tree, "material", self.mat_context_menu)
+        # Bind keyboard shortcuts for services tree
+        self._bind_tree_shortcuts(self.srv_tree, "service", self.srv_context_menu)
+
+    def _bind_tree_shortcuts(self, tree, kind, context_menu):
+        """Bind keyboard shortcuts for a specific tree"""
+        # Double-click to edit
+        tree.bind("<Double-1>", lambda e, k=kind: self._edit_from_tree(k))
+        # Right-click for context menu
+        tree.bind("<Button-3>", lambda e, m=context_menu: self.show_context_menu(e, m))
+        # Delete key
+        tree.bind("<Delete>", lambda e, k=kind: self._delete_from_tree(k))
+        # Enter key to edit
+        tree.bind("<Return>", lambda e, k=kind: self._edit_from_tree(k))
+        # Ctrl+A to select all
+        tree.bind("<Control-a>", lambda e, k=kind: self._select_all(k))
+        # Ctrl+D to duplicate
+        tree.bind("<Control-d>", lambda e, k=kind: self._duplicate_items(k))
+        # Ctrl+Up to move up
+        tree.bind("<Control-Up>", lambda e, k=kind: self._move_item_up(k))
+        # Ctrl+Down to move down
+        tree.bind("<Control-Down>", lambda e, k=kind: self._move_item_down(k))
+
+    def create_context_menu(self, tree, kind):
+        """Create context menu for tree view"""
+        menu = tk.Menu(tree, tearoff=0)
+        menu.add_command(label="✏️ Edytuj", command=lambda k=kind: self._edit_from_tree(k))
+        menu.add_command(label="📋 Duplikuj", command=lambda k=kind: self._duplicate_items(k))
+        menu.add_separator()
+        menu.add_command(label="⬆️ Przesuń w górę", command=lambda k=kind: self._move_item_up(k))
+        menu.add_command(label="⬇️ Przesuń w dół", command=lambda k=kind: self._move_item_down(k))
+        menu.add_separator()
+        menu.add_command(label="🔄 Zmień kategorię", command=lambda k=kind: self._change_category(k))
+        menu.add_separator()
+        menu.add_command(label="🗑️ Usuń", command=lambda k=kind: self._delete_from_tree(k))
+        menu.add_command(label="🗑️ Usuń wszystkie", command=lambda k=kind: self._clear_all(k))
+        return menu
+
+    def show_context_menu(self, event, menu):
+        """Show context menu at mouse position"""
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
 
     # map cost_items into trees
     def _refresh_cost_ui(self):
@@ -862,21 +993,165 @@ class RoofCalculatorApp:
         self.c_name.delete(0,tk.END); self.c_qty.delete(0,tk.END); self.c_unit.delete(0,tk.END); self.c_price.delete(0,tk.END)
 
     def _edit_from_tree(self, kind: str):
+        """Edit item from tree - only works with single selection"""
         tree = self.mat_tree if kind=="material" else self.srv_tree
         sel = tree.selection()
-        if not sel: messagebox.showwarning("Brak zaznaczenia","Wybierz pozycję"); return
-        idx = int(sel[0]); it = self.cost_items[idx]
+        if not sel: 
+            messagebox.showwarning("Brak zaznaczenia","Wybierz pozycję")
+            return
+        if len(sel) > 1:
+            messagebox.showwarning("Zbyt wiele zaznaczonych","Edycja działa tylko dla jednej pozycji")
+            return
+        idx = int(sel[0])
+        it = self.cost_items[idx]
         dlg = CostItemEditDialog(self.master, "Edytuj pozycję", item=it)
         if getattr(dlg,"result",None):
-            self.cost_items[idx] = dlg.result; self._refresh_cost_ui()
+            self.cost_items[idx] = dlg.result
+            self._refresh_cost_ui()
 
     def _delete_from_tree(self, kind: str):
+        """Delete selected items from tree - supports multiple selection"""
         tree = self.mat_tree if kind=="material" else self.srv_tree
         sel = tree.selection()
-        if not sel: messagebox.showwarning("Brak zaznaczenia","Wybierz pozycję"); return
-        idx = int(sel[0])
-        if not messagebox.askyesno("Usuń","Usunąć pozycję?"): return
-        del self.cost_items[idx]; self._refresh_cost_ui()
+        if not sel: 
+            messagebox.showwarning("Brak zaznaczenia","Wybierz pozycję")
+            return
+        
+        count = len(sel)
+        if not messagebox.askyesno("Usuń", f"Usunąć {count} pozycję/pozycji?"): 
+            return
+        
+        # Sort indices in reverse order to delete from end to avoid index shifts
+        indices = sorted([int(item_id) for item_id in sel], reverse=True)
+        for idx in indices:
+            del self.cost_items[idx]
+        
+        self._refresh_cost_ui()
+
+    def _select_all(self, kind: str):
+        """Select all items in the tree"""
+        tree = self.mat_tree if kind=="material" else self.srv_tree
+        all_items = tree.get_children()
+        tree.selection_set(all_items)
+
+    def _duplicate_items(self, kind: str):
+        """Duplicate selected items"""
+        tree = self.mat_tree if kind=="material" else self.srv_tree
+        sel = tree.selection()
+        if not sel:
+            messagebox.showwarning("Brak zaznaczenia", "Wybierz pozycje do duplikowania")
+            return
+        
+        # Get items to duplicate
+        items_to_duplicate = []
+        for item_id in sel:
+            idx = int(item_id)
+            items_to_duplicate.append(self.cost_items[idx].copy())
+        
+        # Add duplicates
+        self.cost_items.extend(items_to_duplicate)
+        self._refresh_cost_ui()
+        messagebox.showinfo("Duplikacja", f"Zduplikowano {len(items_to_duplicate)} pozycję/pozycji")
+
+    def _move_item_up(self, kind: str):
+        """Move selected items up in the list"""
+        tree = self.mat_tree if kind=="material" else self.srv_tree
+        sel = tree.selection()
+        if not sel:
+            messagebox.showwarning("Brak zaznaczenia", "Wybierz pozycje do przeniesienia")
+            return
+        
+        # Sort indices to move from top to bottom
+        indices = sorted([int(item_id) for item_id in sel])
+        
+        # Check if first item is already at position 0
+        if indices[0] == 0:
+            messagebox.showinfo("Informacja", "Pozycja jest już na górze")
+            return
+        
+        # Move each item up
+        new_selection = []
+        for idx in indices:
+            if idx > 0:
+                self.cost_items[idx], self.cost_items[idx-1] = self.cost_items[idx-1], self.cost_items[idx]
+                new_selection.append(str(idx-1))
+            else:
+                new_selection.append(str(idx))
+        
+        self._refresh_cost_ui()
+        
+        # Reselect moved items at their new positions
+        tree.selection_set(new_selection)
+
+    def _move_item_down(self, kind: str):
+        """Move selected items down in the list"""
+        tree = self.mat_tree if kind=="material" else self.srv_tree
+        sel = tree.selection()
+        if not sel:
+            messagebox.showwarning("Brak zaznaczenia", "Wybierz pozycje do przeniesienia")
+            return
+        
+        # Sort indices in reverse to move from bottom to top
+        indices = sorted([int(item_id) for item_id in sel], reverse=True)
+        
+        # Check if last item is already at the end
+        if indices[0] >= len(self.cost_items) - 1:
+            messagebox.showinfo("Informacja", "Pozycja jest już na dole")
+            return
+        
+        # Move each item down
+        new_selection = []
+        for idx in indices:
+            if idx < len(self.cost_items) - 1:
+                self.cost_items[idx], self.cost_items[idx+1] = self.cost_items[idx+1], self.cost_items[idx]
+                new_selection.append(str(idx+1))
+            else:
+                new_selection.append(str(idx))
+        
+        self._refresh_cost_ui()
+        
+        # Reselect moved items at their new positions
+        tree.selection_set(new_selection)
+
+    def _change_category(self, current_kind: str):
+        """Change category of selected items (material ↔ service)"""
+        tree = self.mat_tree if current_kind == "material" else self.srv_tree
+        sel = tree.selection()
+        if not sel:
+            messagebox.showwarning("Brak zaznaczenia", "Wybierz pozycje do przeniesienia")
+            return
+        
+        new_category = "service" if current_kind == "material" else "material"
+        
+        for item_id in sel:
+            idx = int(item_id)
+            self.cost_items[idx]["category"] = new_category
+        
+        self._refresh_cost_ui()
+        messagebox.showinfo("Przeniesiono", 
+            f"Przeniesiono {len(sel)} pozycję/pozycji do {'usług' if new_category == 'service' else 'materiałów'}")
+
+    def _clear_all(self, kind: str):
+        """Clear all items in a category"""
+        category = "material" if kind == "material" else "service"
+        category_name = "materiałów" if kind == "material" else "usług"
+        
+        # Count items in category
+        items_in_category = [it for it in self.cost_items if it.get("category", "material") == category]
+        count = len(items_in_category)
+        
+        if count == 0:
+            messagebox.showinfo("Brak pozycji", f"Brak {category_name} do usunięcia")
+            return
+        
+        if not messagebox.askyesno("Usuń wszystkie", 
+            f"Usunąć wszystkie {count} pozycji z {category_name}?"):
+            return
+        
+        # Remove all items in category
+        self.cost_items = [it for it in self.cost_items if it.get("category", "material") != category]
+        self._refresh_cost_ui()
+        messagebox.showinfo("Usunięto", f"Usunięto {count} pozycji z {category_name}")
 
     # calculation / summary (fix for missing method)
     def calculate_cost_estimation(self):
