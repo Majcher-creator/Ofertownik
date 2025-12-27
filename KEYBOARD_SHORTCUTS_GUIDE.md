@@ -134,7 +134,7 @@ All existing menu items now show their keyboard shortcuts.
 
 Added a status bar at the bottom of the window showing the most commonly used shortcuts:
 ```
-Ctrl+S: Zapisz | Ctrl+O: Otwórz | F5: Oblicz | Del: Usuń | Enter: Edytuj | Ctrl+A: Zaznacz wszystkie | F1: Pomoc
+Ctrl+S: Zapisz | Ctrl+O: Wczytaj | F5: Oblicz | Del: Usuń | Ctrl+A: Zaznacz | F1: Pomoc
 ```
 
 ## Technical Implementation Details
