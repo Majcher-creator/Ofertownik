@@ -935,16 +935,16 @@ Wersja: 4.7
     def create_context_menu(self, tree, kind):
         """Create context menu for tree view"""
         menu = tk.Menu(tree, tearoff=0)
-        menu.add_command(label="✏️ Edytuj", command=lambda: self._edit_from_tree(kind))
-        menu.add_command(label="📋 Duplikuj", command=lambda: self._duplicate_items(kind))
+        menu.add_command(label="✏️ Edytuj", command=lambda k=kind: self._edit_from_tree(k))
+        menu.add_command(label="📋 Duplikuj", command=lambda k=kind: self._duplicate_items(k))
         menu.add_separator()
-        menu.add_command(label="⬆️ Przesuń w górę", command=lambda: self._move_item_up(kind))
-        menu.add_command(label="⬇️ Przesuń w dół", command=lambda: self._move_item_down(kind))
+        menu.add_command(label="⬆️ Przesuń w górę", command=lambda k=kind: self._move_item_up(k))
+        menu.add_command(label="⬇️ Przesuń w dół", command=lambda k=kind: self._move_item_down(k))
         menu.add_separator()
-        menu.add_command(label="🔄 Zmień kategorię", command=lambda: self._change_category(kind))
+        menu.add_command(label="🔄 Zmień kategorię", command=lambda k=kind: self._change_category(k))
         menu.add_separator()
-        menu.add_command(label="🗑️ Usuń", command=lambda: self._delete_from_tree(kind))
-        menu.add_command(label="🗑️ Usuń wszystkie", command=lambda: self._clear_all(kind))
+        menu.add_command(label="🗑️ Usuń", command=lambda k=kind: self._delete_from_tree(k))
+        menu.add_command(label="🗑️ Usuń wszystkie", command=lambda k=kind: self._clear_all(k))
         return menu
 
     def show_context_menu(self, event, menu):
