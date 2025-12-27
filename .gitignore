@@ -39,8 +39,20 @@ Thumbs.db
 # Application data
 .roofcalc/
 settings.json
+.env
+*.db
+*.db-journal
+
+# Backup files
+*.bak
+*.backup
 
 # Temporary files
 *.tmp
 *.temp
 *.log
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
