@@ -31,6 +31,7 @@ Kompleksowa aplikacja desktopowa do tworzenia profesjonalnych kosztorysów ofert
 
 #### 📤 Eksport i Import
 - **PDF** - Profesjonalne kosztorysy PDF z logo firmy
+- **Podgląd PDF** - Podgląd wygenerowanego PDF przed zapisem
 - **CSV** - Eksport do arkuszy kalkulacyjnych
 - **JSON** - Zapisywanie i wczytywanie projektów
 - **Word** - Eksport do edytowalnych dokumentów .docx (wkrótce)
@@ -39,6 +40,7 @@ Kompleksowa aplikacja desktopowa do tworzenia profesjonalnych kosztorysów ofert
 ### 📄 Eksport
 
 - **PDF** - Profesjonalny kosztorys ofertowy z logo firmy
+- **Podgląd PDF** - Możliwość podglądu wygenerowanego PDF w domyślnej przeglądarce przed zapisem
 - **CSV** - Eksport danych do arkusza kalkulacyjnego
 - **JSON** - Zapisywanie i wczytywanie kosztorysów
 
