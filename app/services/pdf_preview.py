@@ -49,10 +49,11 @@ class PDFPreview:
                 try:
                     os.unlink(temp_path)
                 except Exception:
+                    # Ignore cleanup errors
                     pass
                 return None
                 
-        except Exception as e:
+        except Exception:
             # W przypadku błędu zwróć None
             return None
     

@@ -25,7 +25,7 @@
 from typing import List, Dict, Any, Optional
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, filedialog
-import json, os, csv, platform, subprocess, re, math
+import json, os, csv, platform, subprocess, re, math, shutil
 from datetime import datetime
 
 # Pillow for logo preview (optional)
@@ -1132,7 +1132,7 @@ class RoofCalculatorApp:
         except Exception as e:
             messagebox.showerror("Błąd", f"Nie udało się zapisać CSV:\n{e}")
 
-    # helper method for PDF generation (used by both export and preview)
+    # Helper method for PDF generation (used by both export and preview).
     def _generate_pdf_to_path(self, path: str) -> None:
         """
         Generate PDF document to the specified path.
@@ -1386,7 +1386,6 @@ class RoofCalculatorApp:
             if path:
                 try:
                     # Copy temp file to chosen location
-                    import shutil
                     shutil.copy2(temp_path, path)
                     messagebox.showinfo("PDF zapisany", f"Zapisano PDF: {path}")
                 except Exception as e:
