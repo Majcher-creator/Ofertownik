@@ -50,6 +50,14 @@ try:
 except ImportError:
     CALC_MODULES_AVAILABLE = False
 
+# Import app modules (new modular structure)
+try:
+    from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text
+    from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
+    APP_MODULES_AVAILABLE = True
+except ImportError:
+    APP_MODULES_AVAILABLE = False
+
 # ---------------- Color Theme ----------------
 # Modern color palette for roofing application
 COLORS = {
@@ -70,17 +78,20 @@ COLORS = {
 }
 
 # ---------------- Helpers ----------------
-def fmt_money_plain(v: float) -> str:
-    s = f"{v:,.2f}"
-    return s.replace(",", "X").replace(".", ",").replace("X", " ")
+# Formatting functions imported from app.utils.formatting
+# Fallback definitions if app modules not available
+if not APP_MODULES_AVAILABLE:
+    def fmt_money_plain(v: float) -> str:
+        s = f"{v:,.2f}"
+        return s.replace(",", "X").replace(".", ",").replace("X", " ")
 
-def fmt_money(v: float) -> str:
-    return fmt_money_plain(v) + " zł"
+    def fmt_money(v: float) -> str:
+        return fmt_money_plain(v) + " zł"
 
-def is_valid_float_text(s: str) -> bool:
-    if s == "" or s == "-" or s == ".": return True
-    s = s.replace(",", ".")
-    return bool(re.match(r'^\d+(\.\d{0,3})?$', s))
+    def is_valid_float_text(s: str) -> bool:
+        if s == "" or s == "-" or s == ".": return True
+        s = s.replace(",", ".")
+        return bool(re.match(r'^\d+(\.\d{0,3})?$', s))
 
 def apply_modern_style(root):
     """Apply modern styling to ttk widgets."""
@@ -221,111 +232,115 @@ def compute_totals_local(items: List[Dict[str,Any]], transport_percent: float = 
     return {"items": res_items, "by_vat": by_vat, "by_category": by_cat, "transport": {"percent":transport_percent,"net":transport_net,"vat":transport_vat_val,"gross":transport_gross}, "summary": summary}
 
 # ---------------- Dialogs ----------------
-class ClientDialog(simpledialog.Dialog):
-    def __init__(self,parent,title,client=None):
-        self.client = client or {}
-        super().__init__(parent,title)
-    def body(self,master):
-        ttk.Label(master, text="Nazwa klienta:").grid(row=0,column=0,sticky="w")
-        self.e_name = ttk.Entry(master, width=60); self.e_name.grid(row=0,column=1,pady=2)
-        ttk.Label(master, text="Adres:").grid(row=1,column=0,sticky="w")
-        self.e_address = ttk.Entry(master, width=60); self.e_address.grid(row=1,column=1,pady=2)
-        ttk.Label(master, text="NIP / ID:").grid(row=2,column=0,sticky="w")
-        self.e_id = ttk.Entry(master, width=60); self.e_id.grid(row=2,column=1,pady=2)
-        ttk.Label(master, text="Telefon:").grid(row=3,column=0,sticky="w")
-        self.e_phone = ttk.Entry(master, width=60); self.e_phone.grid(row=3,column=1,pady=2)
-        ttk.Label(master, text="E-mail:").grid(row=4,column=0,sticky="w")
-        self.e_mail = ttk.Entry(master, width=60); self.e_mail.grid(row=4,column=1,pady=2)
-        if self.client:
-            self.e_name.insert(0,self.client.get("name",""))
-            self.e_address.insert(0,self.client.get("address",""))
-            self.e_id.insert(0,self.client.get("id",""))
-            self.e_phone.insert(0,self.client.get("phone",""))
-            self.e_mail.insert(0,self.client.get("email",""))
-        return self.e_name
-    def apply(self):
-        self.result = {"name": self.e_name.get().strip(), "address": self.e_address.get().strip(), "id": self.e_id.get().strip(), "phone": self.e_phone.get().strip(), "email": self.e_mail.get().strip()}
+# ---------------- Main App ----------------
+# Dialog classes imported from app.ui.dialogs
+# Fallback definitions if app modules not available
+if not APP_MODULES_AVAILABLE:
+    class ClientDialog(simpledialog.Dialog):
+        def __init__(self,parent,title,client=None):
+            self.client = client or {}
+            super().__init__(parent,title)
+        def body(self,master):
+            ttk.Label(master, text="Nazwa klienta:").grid(row=0,column=0,sticky="w")
+            self.e_name = ttk.Entry(master, width=60); self.e_name.grid(row=0,column=1,pady=2)
+            ttk.Label(master, text="Adres:").grid(row=1,column=0,sticky="w")
+            self.e_address = ttk.Entry(master, width=60); self.e_address.grid(row=1,column=1,pady=2)
+            ttk.Label(master, text="NIP / ID:").grid(row=2,column=0,sticky="w")
+            self.e_id = ttk.Entry(master, width=60); self.e_id.grid(row=2,column=1,pady=2)
+            ttk.Label(master, text="Telefon:").grid(row=3,column=0,sticky="w")
+            self.e_phone = ttk.Entry(master, width=60); self.e_phone.grid(row=3,column=1,pady=2)
+            ttk.Label(master, text="E-mail:").grid(row=4,column=0,sticky="w")
+            self.e_mail = ttk.Entry(master, width=60); self.e_mail.grid(row=4,column=1,pady=2)
+            if self.client:
+                self.e_name.insert(0,self.client.get("name",""))
+                self.e_address.insert(0,self.client.get("address",""))
+                self.e_id.insert(0,self.client.get("id",""))
+                self.e_phone.insert(0,self.client.get("phone",""))
+                self.e_mail.insert(0,self.client.get("email",""))
+            return self.e_name
+        def apply(self):
+            self.result = {"name": self.e_name.get().strip(), "address": self.e_address.get().strip(), "id": self.e_id.get().strip(), "phone": self.e_phone.get().strip(), "email": self.e_mail.get().strip()}
 
-class CostItemEditDialog(simpledialog.Dialog):
-    def __init__(self,parent,title,item=None):
-        self.item = item or {}
-        super().__init__(parent,title)
-    def body(self,master):
-        ttk.Label(master, text="Nazwa:").grid(row=0,column=0,sticky="w")
-        self.e_name = ttk.Entry(master, width=50); self.e_name.grid(row=0,column=1,pady=2)
-        ttk.Label(master, text="Ilość:").grid(row=1,column=0,sticky="w")
-        self.e_qty = ttk.Entry(master, width=12); self.e_qty.grid(row=1,column=1,sticky="w", pady=2)
-        ttk.Label(master, text="JM:").grid(row=2,column=0,sticky="w")
-        self.e_unit = ttk.Entry(master, width=12); self.e_unit.grid(row=2,column=1,sticky="w", pady=2)
-        ttk.Label(master, text="Cena netto:").grid(row=3,column=0,sticky="w")
-        self.e_price = ttk.Entry(master, width=12); self.e_price.grid(row=3,column=1,sticky="w", pady=2)
-        ttk.Label(master, text="VAT [%]:").grid(row=4,column=0,sticky="w")
-        self.vat_cb = ttk.Combobox(master, values=["0","8","23"], width=8, state="readonly"); self.vat_cb.grid(row=4,column=1,sticky="w")
-        ttk.Label(master, text="Kategoria:").grid(row=5,column=0,sticky="w")
-        self.cat_cb = ttk.Combobox(master, values=["material","service"], width=12, state="readonly"); self.cat_cb.grid(row=5,column=1,sticky="w")
-        ttk.Label(master, text="Notatka:").grid(row=6,column=0,sticky="nw")
-        self.t_note = tk.Text(master, height=4, width=40); self.t_note.grid(row=6,column=1,pady=2)
-        vcmd = (master.register(lambda P: is_valid_float_text(P)), "%P")
-        self.e_qty.config(validate="key", validatecommand=vcmd); self.e_price.config(validate="key", validatecommand=vcmd)
-        if self.item:
-            self.e_name.insert(0,self.item.get("name",""))
-            self.e_qty.insert(0,f"{float(self.item.get('quantity',0.0)):.3f}")
-            self.e_unit.insert(0,self.item.get("unit",""))
-            self.e_price.insert(0,f"{float(self.item.get('price_unit_net',0.0)):.2f}")
-            self.vat_cb.set(str(self.item.get("vat_rate",23)))
-            self.cat_cb.set(self.item.get("category","material"))
-            self.t_note.insert("1.0", self.item.get("note",""))
-        else:
-            self.vat_cb.set("23"); self.cat_cb.set("material")
-        return self.e_name
-    def validate(self):
-        if not self.e_name.get().strip():
-            messagebox.showerror("Błąd","Nazwa wymagana"); return False
-        try:
-            float(self.e_qty.get().replace(",",".") or 0.0)
-            float(self.e_price.get().replace(",",".") or 0.0)
-        except Exception:
-            messagebox.showerror("Błąd","Ilość i cena muszą być liczbami"); return False
-        return True
-    def apply(self):
-        self.result = {"name": self.e_name.get().strip(), "quantity": float(self.e_qty.get().replace(",","." ) or 0.0), "unit": self.e_unit.get().strip(), "price_unit_net": float(self.e_price.get().replace(",","." ) or 0.0), "vat_rate": int(self.vat_cb.get() or 23), "category": self.cat_cb.get() or "material", "note": self.t_note.get("1.0","end").strip()}
+    class CostItemEditDialog(simpledialog.Dialog):
+        def __init__(self,parent,title,item=None):
+            self.item = item or {}
+            super().__init__(parent,title)
+        def body(self,master):
+            ttk.Label(master, text="Nazwa:").grid(row=0,column=0,sticky="w")
+            self.e_name = ttk.Entry(master, width=50); self.e_name.grid(row=0,column=1,pady=2)
+            ttk.Label(master, text="Ilość:").grid(row=1,column=0,sticky="w")
+            self.e_qty = ttk.Entry(master, width=12); self.e_qty.grid(row=1,column=1,sticky="w", pady=2)
+            ttk.Label(master, text="JM:").grid(row=2,column=0,sticky="w")
+            self.e_unit = ttk.Entry(master, width=12); self.e_unit.grid(row=2,column=1,sticky="w", pady=2)
+            ttk.Label(master, text="Cena netto:").grid(row=3,column=0,sticky="w")
+            self.e_price = ttk.Entry(master, width=12); self.e_price.grid(row=3,column=1,sticky="w", pady=2)
+            ttk.Label(master, text="VAT [%]:").grid(row=4,column=0,sticky="w")
+            self.vat_cb = ttk.Combobox(master, values=["0","8","23"], width=8, state="readonly"); self.vat_cb.grid(row=4,column=1,sticky="w")
+            ttk.Label(master, text="Kategoria:").grid(row=5,column=0,sticky="w")
+            self.cat_cb = ttk.Combobox(master, values=["material","service"], width=12, state="readonly"); self.cat_cb.grid(row=5,column=1,sticky="w")
+            ttk.Label(master, text="Notatka:").grid(row=6,column=0,sticky="nw")
+            self.t_note = tk.Text(master, height=4, width=40); self.t_note.grid(row=6,column=1,pady=2)
+            vcmd = (master.register(lambda P: is_valid_float_text(P)), "%P")
+            self.e_qty.config(validate="key", validatecommand=vcmd); self.e_price.config(validate="key", validatecommand=vcmd)
+            if self.item:
+                self.e_name.insert(0,self.item.get("name",""))
+                self.e_qty.insert(0,f"{float(self.item.get('quantity',0.0)):.3f}")
+                self.e_unit.insert(0,self.item.get("unit",""))
+                self.e_price.insert(0,f"{float(self.item.get('price_unit_net',0.0)):.2f}")
+                self.vat_cb.set(str(self.item.get("vat_rate",23)))
+                self.cat_cb.set(self.item.get("category","material"))
+                self.t_note.insert("1.0", self.item.get("note",""))
+            else:
+                self.vat_cb.set("23"); self.cat_cb.set("material")
+            return self.e_name
+        def validate(self):
+            if not self.e_name.get().strip():
+                messagebox.showerror("Błąd","Nazwa wymagana"); return False
+            try:
+                float(self.e_qty.get().replace(",",".") or 0.0)
+                float(self.e_price.get().replace(",",".") or 0.0)
+            except Exception:
+                messagebox.showerror("Błąd","Ilość i cena muszą być liczbami"); return False
+            return True
+        def apply(self):
+            self.result = {"name": self.e_name.get().strip(), "quantity": float(self.e_qty.get().replace(",","." ) or 0.0), "unit": self.e_unit.get().strip(), "price_unit_net": float(self.e_price.get().replace(",","." ) or 0.0), "vat_rate": int(self.vat_cb.get() or 23), "category": self.cat_cb.get() or "material", "note": self.t_note.get("1.0","end").strip()}
 
-class MaterialEditDialog(simpledialog.Dialog):
-    def __init__(self,parent,title,material=None):
-        self.material = material or {}
-        super().__init__(parent,title)
-    def body(self,master):
-        ttk.Label(master, text="Nazwa:").grid(row=0,column=0,sticky="w")
-        self.e_name = ttk.Entry(master, width=60); self.e_name.grid(row=0,column=1,pady=2)
-        ttk.Label(master, text="JM:").grid(row=1,column=0,sticky="w")
-        self.e_unit = ttk.Entry(master, width=20); self.e_unit.grid(row=1,column=1,pady=2, sticky="w")
-        ttk.Label(master, text="Cena netto (jedn.):").grid(row=2,column=0,sticky="w")
-        self.e_price = ttk.Entry(master, width=20); self.e_price.grid(row=2,column=1,pady=2, sticky="w")
-        ttk.Label(master, text="VAT [%]:").grid(row=3,column=0,sticky="w")
-        self.vat_cb = ttk.Combobox(master, values=["0","8","23"], width=8, state="readonly"); self.vat_cb.grid(row=3,column=1,sticky="w")
-        ttk.Label(master, text="Kategoria:").grid(row=4,column=0,sticky="w")
-        self.cat_cb = ttk.Combobox(master, values=["material","service"], width=12, state="readonly"); self.cat_cb.grid(row=4,column=1,sticky="w")
-        vcmd = (master.register(lambda P: is_valid_float_text(P)), "%P")
-        self.e_price.config(validate="key", validatecommand=vcmd)
-        if self.material:
-            self.e_name.insert(0, self.material.get("name",""))
-            self.e_unit.insert(0, self.material.get("unit",""))
-            self.e_price.insert(0, f"{float(self.material.get('price_unit_net',0.0)):.2f}")
-            self.vat_cb.set(str(self.material.get("vat_rate",23)))
-            self.cat_cb.set(self.material.get("category","material"))
-        else:
-            self.vat_cb.set("23"); self.cat_cb.set("material")
-        return self.e_name
-    def validate(self):
-        if not self.e_name.get().strip():
-            messagebox.showerror("Błąd","Nazwa wymagana"); return False
-        try:
-            float(self.e_price.get().replace(",",".") or 0.0)
-        except Exception:
-            messagebox.showerror("Błąd","Cena musi być liczbą"); return False
-        return True
-    def apply(self):
-        self.result = {"name": self.e_name.get().strip(), "unit": self.e_unit.get().strip(), "price_unit_net": float(self.e_price.get().replace(",",".") or 0.0), "vat_rate": int(self.vat_cb.get() or 23), "category": self.cat_cb.get() or "material"}
+    class MaterialEditDialog(simpledialog.Dialog):
+        def __init__(self,parent,title,material=None):
+            self.material = material or {}
+            super().__init__(parent,title)
+        def body(self,master):
+            ttk.Label(master, text="Nazwa:").grid(row=0,column=0,sticky="w")
+            self.e_name = ttk.Entry(master, width=60); self.e_name.grid(row=0,column=1,pady=2)
+            ttk.Label(master, text="JM:").grid(row=1,column=0,sticky="w")
+            self.e_unit = ttk.Entry(master, width=20); self.e_unit.grid(row=1,column=1,pady=2, sticky="w")
+            ttk.Label(master, text="Cena netto (jedn.):").grid(row=2,column=0,sticky="w")
+            self.e_price = ttk.Entry(master, width=20); self.e_price.grid(row=2,column=1,pady=2, sticky="w")
+            ttk.Label(master, text="VAT [%]:").grid(row=3,column=0,sticky="w")
+            self.vat_cb = ttk.Combobox(master, values=["0","8","23"], width=8, state="readonly"); self.vat_cb.grid(row=3,column=1,sticky="w")
+            ttk.Label(master, text="Kategoria:").grid(row=4,column=0,sticky="w")
+            self.cat_cb = ttk.Combobox(master, values=["material","service"], width=12, state="readonly"); self.cat_cb.grid(row=4,column=1,sticky="w")
+            vcmd = (master.register(lambda P: is_valid_float_text(P)), "%P")
+            self.e_price.config(validate="key", validatecommand=vcmd)
+            if self.material:
+                self.e_name.insert(0, self.material.get("name",""))
+                self.e_unit.insert(0, self.material.get("unit",""))
+                self.e_price.insert(0, f"{float(self.material.get('price_unit_net',0.0)):.2f}")
+                self.vat_cb.set(str(self.material.get("vat_rate",23)))
+                self.cat_cb.set(self.material.get("category","material"))
+            else:
+                self.vat_cb.set("23"); self.cat_cb.set("material")
+            return self.e_name
+        def validate(self):
+            if not self.e_name.get().strip():
+                messagebox.showerror("Błąd","Nazwa wymagana"); return False
+            try:
+                float(self.e_price.get().replace(",",".") or 0.0)
+            except Exception:
+                messagebox.showerror("Błąd","Cena musi być liczbą"); return False
+            return True
+        def apply(self):
+            self.result = {"name": self.e_name.get().strip(), "unit": self.e_unit.get().strip(), "price_unit_net": float(self.e_price.get().replace(",",".") or 0.0), "vat_rate": int(self.vat_cb.get() or 23), "category": self.cat_cb.get() or "material"}
 
 # ---------------- Main App ----------------
 class RoofCalculatorApp:
