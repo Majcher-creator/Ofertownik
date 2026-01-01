@@ -11,7 +11,7 @@ from typing import Dict
 COLORS: Dict[str, str] = {
     'primary': '#2C3E50',        # Dark blue-gray for headers
     'secondary': '#34495E',      # Lighter blue-gray
-    'accent': '#F1C40F',         # Yellow accent (roof tiles color)
+    'accent': '#F1C40F',         # Yellow accent
     'accent_dark': '#D4AC0D',    # Darker yellow
     'success': '#27AE60',        # Green for success
     'warning': '#F39C12',        # Yellow for warnings
