@@ -18,3 +18,6 @@ openpyxl>=3.1.0
 
 # Type checking (optional, for development)
 mypy>=1.0.0
+
+# Email functionality
+keyring>=23.0.0

@@ -72,6 +72,14 @@ except ImportError:
     APP_MODULES_AVAILABLE = False
     PDFPreview = None
 
+# Import email service
+try:
+    from app.services.email_service import EmailService
+    EMAIL_SERVICE_AVAILABLE = True
+except ImportError:
+    EMAIL_SERVICE_AVAILABLE = False
+    EmailService = None
+
 # ---------------- Color Theme ----------------
 # Modern color palette for roofing application
 COLORS = {
@@ -412,6 +420,12 @@ class RoofCalculatorApp:
                     self._registered_pdf_font_name = None
         # load db/settings
         self._load_local_db(); self._load_settings()
+        # Email service
+        if EMAIL_SERVICE_AVAILABLE:
+            self.email_service = EmailService()
+            self._load_email_settings()
+        else:
+            self.email_service = None
         # build UI
         self.create_header_bar()
         self.create_menu()
@@ -474,6 +488,33 @@ class RoofCalculatorApp:
         except Exception as e:
             messagebox.showerror("Błąd zapisu ustawień", f"Nie udało się zapisać ustawień:\n{e}")
 
+    def _load_email_settings(self):
+        """Load email configuration from settings."""
+        if not self.email_service:
+            return
+        email_settings = self.settings.get('email', {})
+        if email_settings:
+            self.email_service.configure(
+                smtp_server=email_settings.get('smtp_server', ''),
+                smtp_port=email_settings.get('smtp_port', 587),
+                sender_email=email_settings.get('sender_email', ''),
+                sender_name=email_settings.get('sender_name', ''),
+                use_tls=email_settings.get('use_tls', True)
+            )
+
+    def _save_email_settings(self):
+        """Save email configuration to settings."""
+        if not self.email_service:
+            return
+        self.settings['email'] = {
+            'smtp_server': self.email_service.smtp_server,
+            'smtp_port': self.email_service.smtp_port,
+            'sender_email': self.email_service.sender_email,
+            'sender_name': self.email_service.sender_name,
+            'use_tls': self.email_service.use_tls
+        }
+        self._save_settings()
+
     # invoice numbering using settings.json
     def _get_next_seq_and_set(self) -> int:
         # read last stored sequence/year from settings (already loaded)
@@ -506,6 +547,7 @@ class RoofCalculatorApp:
         self.master.bind('<Control-o>', lambda e: self.load_costfile())
         self.master.bind('<Control-p>', lambda e: self.export_cost_pdf())
         self.master.bind('<Control-e>', lambda e: self.export_cost_csv())
+        self.master.bind('<Control-m>', lambda e: self.send_cost_email())
         self.master.bind('<Control-q>', lambda e: self.master.quit())
         
         # Also bind Command shortcuts on macOS
@@ -515,6 +557,7 @@ class RoofCalculatorApp:
             self.master.bind('<Command-o>', lambda e: self.load_costfile())
             self.master.bind('<Command-p>', lambda e: self.export_cost_pdf())
             self.master.bind('<Command-e>', lambda e: self.export_cost_csv())
+            self.master.bind('<Command-m>', lambda e: self.send_cost_email())
             self.master.bind('<Command-q>', lambda e: self.master.quit())
         
         self.master.bind('<F5>', lambda e: self.calculate_cost_estimation())
@@ -532,6 +575,7 @@ Główne:
   Ctrl+O  - Wczytaj kosztorys
   Ctrl+P  - Eksport PDF
   Ctrl+E  - Eksport CSV
+  Ctrl+M  - Wyślij emailem
   F5      - Oblicz/Przelicz kosztorys
   Ctrl+Q  - Zamknij aplikację
   F1      - Pomoc (to okno)
@@ -600,6 +644,9 @@ Wersja: 4.7
         export_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Eksport", menu=export_menu)
         export_menu.add_command(label="Eksportuj PDF", command=self.export_cost_pdf, accelerator="Ctrl+P")
         export_menu.add_command(label="Eksportuj CSV", command=self.export_cost_csv, accelerator="Ctrl+E")
+        export_menu.add_separator()
+        export_menu.add_command(label="📧 Wyślij emailem...", command=self.send_cost_email, accelerator="Ctrl+M")
+        export_menu.add_command(label="⚙️ Ustawienia email...", command=self.open_email_config)
         
         calc_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Obliczenia", menu=calc_menu)
         calc_menu.add_command(label="Oblicz kosztorys", command=self.calculate_cost_estimation, accelerator="F5")
@@ -617,7 +664,7 @@ Wersja: 4.7
         status.pack(fill='x', side='bottom')
         
         self.status_label = tk.Label(status, 
-            text="Ctrl+S: Zapisz | Ctrl+O: Wczytaj | F5: Oblicz | Del: Usuń | Ctrl+A: Zaznacz | F1: Pomoc",
+            text="Ctrl+S: Zapisz | Ctrl+O: Wczytaj | Ctrl+M: Email | F5: Oblicz | Del: Usuń | Ctrl+A: Zaznacz | F1: Pomoc",
             font=('Segoe UI', 9),
             bg=COLORS['border'], fg=COLORS['text_dark'])
         self.status_label.pack(side='left', padx=10)
@@ -1408,195 +1455,199 @@ Wersja: 4.7
             messagebox.showerror("Błąd", f"Nie udało się zapisać CSV:\n{e}")
 
     # Helper method for PDF generation (used by both export and preview).
-    def _generate_pdf_to_path(self, path: str) -> None:
+    def _generate_pdf_to_path(self, path: str) -> bool:
         """
         Generate PDF document to the specified path.
         
         Args:
             path: File path where the PDF should be saved
             
-        Raises:
-            Exception: If PDF generation fails
+        Returns:
+            bool: True if PDF was generated successfully, False otherwise
         """
-        totals = compute_totals_local(self.cost_items, float(self.transport_percent.get() or 0.0), int(self.transport_vat.get() or 23))
-        items_aug = totals["items"]
-        materials = [it for it in items_aug if it.get("category","material")=="material"]
-        services = [it for it in items_aug if it.get("category","material")=="service"]
-        
-        doc = SimpleDocTemplate(path, pagesize=portrait(A4), leftMargin=15*mm, rightMargin=15*mm, topMargin=15*mm, bottomMargin=15*mm)
-        styles = getSampleStyleSheet(); base_font = self._registered_pdf_font_name or styles['Normal'].fontName
-        normal = ParagraphStyle("NormalApp", parent=styles['Normal'], fontName=base_font, fontSize=9, leading=12)
-        normal_bold = ParagraphStyle("NormalBoldApp", parent=normal, fontName=base_font, fontSize=9, leading=12, textColor=colors.HexColor("#2C3E50"))
-        heading = ParagraphStyle("HeadingApp", parent=styles['Heading3'], fontName=base_font, fontSize=11, leading=14, textColor=colors.HexColor("#F1C40F"))
-        title = ParagraphStyle("TitleApp", parent=styles['Title'], fontName=base_font, fontSize=16, leading=18, alignment=1, textColor=colors.HexColor("#2C3E50"))
-        subtitle = ParagraphStyle("SubtitleApp", parent=styles['Normal'], fontName=base_font, fontSize=10, leading=12, alignment=1, textColor=colors.HexColor("#7F8C8D"))
-        elems = []
-        
-        # Header with logo and document info
-        meta_lines = []
-        meta_lines.append(f"<b>Nr kosztorysu:</b> {self.invoice_number.get()}")
-        meta_lines.append(f"<b>Data wystawienia:</b> {self.invoice_date.get()}")
-        meta_lines.append(f"<b>Metraż dachu:</b> {self.roof_area.get()} m²")
-        meta_lines.append(f"<b>Ważność oferty:</b> {self.validity_days.get()} dni")
-        if self.quote_name.get():
-            meta_lines.append(f"<b>Nazwa:</b> {self.quote_name.get()}")
-        meta_para = Paragraph("<br/>".join(meta_lines), normal)
-        right_parts = []
-        if self.logo_path and os.path.exists(self.logo_path):
-            try:
-                img = RLImage(self.logo_path)
-                img.drawHeight = 30*mm
-                img.drawWidth = img.drawHeight * img.imageWidth / img.imageHeight
-                right_parts.append(img)
-            except Exception:
-                pass
-        header_tbl = Table([[meta_para, right_parts]], colWidths=[320,210])
-        header_tbl.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP')]))
-        elems.append(header_tbl)
-        elems.append(Spacer(1,12))
-        
-        # Title
-        elems.append(Paragraph("KOSZTORYS OFERTOWY", title))
-        elems.append(Spacer(1,8))
-        
-        # client/company two-column with styled headers
-        client = next((c for c in self.clients if hasattr(self,"client_cb") and c.get("name","")==self.client_cb.get()), None)
-        client_lines=["<b>KLIENT:</b>"]
-        if client:
-            client_lines.append(f"<b>{client.get('name','')}</b>")
-            if client.get("address",""): client_lines.append(client.get("address",""))
-            if client.get("id",""): client_lines.append("NIP: "+client.get("id",""))
-            if client.get("phone",""): client_lines.append("Tel: "+client.get("phone",""))
-            if client.get("email",""): client_lines.append("E-mail: "+client.get("email",""))
-        else:
-            client_lines.append("(Brak danych klienta)")
+        try:
+            totals = compute_totals_local(self.cost_items, float(self.transport_percent.get() or 0.0), int(self.transport_vat.get() or 23))
+            items_aug = totals["items"]
+            materials = [it for it in items_aug if it.get("category","material")=="material"]
+            services = [it for it in items_aug if it.get("category","material")=="service"]
             
-        company_lines=["<b>WYKONAWCA:</b>"]
-        company_lines.append(f"<b>{self.settings.get('company_name','')}</b>")
-        if self.settings.get("company_address",""): company_lines.append(self.settings.get("company_address",""))
-        if self.settings.get("company_nip",""): company_lines.append("NIP: "+self.settings.get("company_nip",""))
-        if self.settings.get("company_phone",""): company_lines.append("Tel: "+self.settings.get("company_phone",""))
-        if self.settings.get("company_email",""): company_lines.append("E-mail: "+self.settings.get("company_email",""))
-        if self.settings.get("company_account",""): company_lines.append("Nr konta: "+self.settings.get("company_account",""))
+            doc = SimpleDocTemplate(path, pagesize=portrait(A4), leftMargin=15*mm, rightMargin=15*mm, topMargin=15*mm, bottomMargin=15*mm)
+            styles = getSampleStyleSheet(); base_font = self._registered_pdf_font_name or styles['Normal'].fontName
+            normal = ParagraphStyle("NormalApp", parent=styles['Normal'], fontName=base_font, fontSize=9, leading=12)
+            normal_bold = ParagraphStyle("NormalBoldApp", parent=normal, fontName=base_font, fontSize=9, leading=12, textColor=colors.HexColor("#2C3E50"))
+            heading = ParagraphStyle("HeadingApp", parent=styles['Heading3'], fontName=base_font, fontSize=11, leading=14, textColor=colors.HexColor("#F1C40F"))
+            title = ParagraphStyle("TitleApp", parent=styles['Title'], fontName=base_font, fontSize=16, leading=18, alignment=1, textColor=colors.HexColor("#2C3E50"))
+            subtitle = ParagraphStyle("SubtitleApp", parent=styles['Normal'], fontName=base_font, fontSize=10, leading=12, alignment=1, textColor=colors.HexColor("#7F8C8D"))
+            elems = []
         
-        left_part = Paragraph("<br/>".join(client_lines), normal)
-        right_part = Paragraph("<br/>".join(company_lines), normal)
-        cc_tbl = Table([[left_part,right_part]], colWidths=[270,270])
-        cc_tbl.setStyle(TableStyle([
-            ('VALIGN',(0,0),(-1,-1),'TOP'),
-            ('BOX',(0,0),(0,0),0.5,colors.HexColor("#BDC3C7")),
-            ('BOX',(1,0),(1,0),0.5,colors.HexColor("#BDC3C7")),
-            ('PADDING',(0,0),(-1,-1),8),
-        ]))
-        elems.append(cc_tbl)
-        elems.append(Spacer(1,15))
+            # Header with logo and document info
+            meta_lines = []
+            meta_lines.append(f"<b>Nr kosztorysu:</b> {self.invoice_number.get()}")
+            meta_lines.append(f"<b>Data wystawienia:</b> {self.invoice_date.get()}")
+            meta_lines.append(f"<b>Metraż dachu:</b> {self.roof_area.get()} m²")
+            meta_lines.append(f"<b>Ważność oferty:</b> {self.validity_days.get()} dni")
+            if self.quote_name.get():
+                meta_lines.append(f"<b>Nazwa:</b> {self.quote_name.get()}")
+            meta_para = Paragraph("<br/>".join(meta_lines), normal)
+            right_parts = []
+            if self.logo_path and os.path.exists(self.logo_path):
+                try:
+                    img = RLImage(self.logo_path)
+                    img.drawHeight = 30*mm
+                    img.drawWidth = img.drawHeight * img.imageWidth / img.imageHeight
+                    right_parts.append(img)
+                except Exception:
+                    pass
+            header_tbl = Table([[meta_para, right_parts]], colWidths=[320,210])
+            header_tbl.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP')]))
+            elems.append(header_tbl)
+            elems.append(Spacer(1,12))
         
-        # helper: add tables with sums (narrower columns) - improved styling
-        def add_table_with_sum(title_txt: str, rows: List[List[str]], sum_label: str, sum_value: float):
-            elems.append(Paragraph(title_txt, heading))
+            # Title
+            elems.append(Paragraph("KOSZTORYS OFERTOWY", title))
+            elems.append(Spacer(1,8))
+        
+            # client/company two-column with styled headers
+            client = next((c for c in self.clients if hasattr(self,"client_cb") and c.get("name","")==self.client_cb.get()), None)
+            client_lines=["<b>KLIENT:</b>"]
+            if client:
+                client_lines.append(f"<b>{client.get('name','')}</b>")
+                if client.get("address",""): client_lines.append(client.get("address",""))
+                if client.get("id",""): client_lines.append("NIP: "+client.get("id",""))
+                if client.get("phone",""): client_lines.append("Tel: "+client.get("phone",""))
+                if client.get("email",""): client_lines.append("E-mail: "+client.get("email",""))
+            else:
+                client_lines.append("(Brak danych klienta)")
+            
+            company_lines=["<b>WYKONAWCA:</b>"]
+            company_lines.append(f"<b>{self.settings.get('company_name','')}</b>")
+            if self.settings.get("company_address",""): company_lines.append(self.settings.get("company_address",""))
+            if self.settings.get("company_nip",""): company_lines.append("NIP: "+self.settings.get("company_nip",""))
+            if self.settings.get("company_phone",""): company_lines.append("Tel: "+self.settings.get("company_phone",""))
+            if self.settings.get("company_email",""): company_lines.append("E-mail: "+self.settings.get("company_email",""))
+            if self.settings.get("company_account",""): company_lines.append("Nr konta: "+self.settings.get("company_account",""))
+        
+            left_part = Paragraph("<br/>".join(client_lines), normal)
+            right_part = Paragraph("<br/>".join(company_lines), normal)
+            cc_tbl = Table([[left_part,right_part]], colWidths=[270,270])
+            cc_tbl.setStyle(TableStyle([
+                ('VALIGN',(0,0),(-1,-1),'TOP'),
+                ('BOX',(0,0),(0,0),0.5,colors.HexColor("#BDC3C7")),
+                ('BOX',(1,0),(1,0),0.5,colors.HexColor("#BDC3C7")),
+                ('PADDING',(0,0),(-1,-1),8),
+            ]))
+            elems.append(cc_tbl)
+            elems.append(Spacer(1,15))
+        
+            # helper: add tables with sums (narrower columns) - improved styling
+            def add_table_with_sum(title_txt: str, rows: List[List[str]], sum_label: str, sum_value: float):
+                elems.append(Paragraph(title_txt, heading))
+                elems.append(Spacer(1,4))
+                max_rows_per_table = 28
+                total_rows = len(rows)
+                chunks = [rows[i:i+max_rows_per_table] for i in range(0, total_rows, max_rows_per_table)]
+                if not chunks:
+                    chunks = [[]]
+                for ci, chunk in enumerate(chunks):
+                    tbl = [["Lp","Nazwa","Ilość","JM","Cena netto","Wartość netto"]] + chunk
+                    if ci == len(chunks)-1:
+                        tbl.append(["", sum_label, "", "", "", f"{fmt_money_plain(sum_value)} zł"])
+                        t = Table(tbl, repeatRows=1, colWidths=[25,280,50,35,75,75])
+                        t.setStyle(TableStyle([
+                            ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
+                            ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
+                            ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
+                            ('ALIGN',(0,0),(0,-1),'CENTER'),
+                            ('ALIGN',(2,1),(2,-2),'RIGHT'),
+                            ('ALIGN',(4,1),(5,-2),'RIGHT'),
+                            ('ALIGN',(5,-1),(5,-1),'RIGHT'),
+                            ('SPAN',(1,-1),(4,-1)),
+                            ('BACKGROUND',(0,-1),(-1,-1),colors.HexColor("#E8F6F3")),
+                            ('FONTNAME',(0,0),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
+                            ('FONTSIZE',(0,0),(-1,-1),9),
+                            ('FONTNAME',(0,-1),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
+                            ('BOTTOMPADDING',(0,0),(-1,-1),6),
+                            ('TOPPADDING',(0,0),(-1,-1),6),
+                        ]))
+                    else:
+                        t = Table(tbl, repeatRows=1, colWidths=[25,280,50,35,75,75])
+                        t.setStyle(TableStyle([
+                            ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
+                            ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
+                            ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
+                            ('ALIGN',(0,0),(0,-1),'CENTER'),
+                            ('ALIGN',(2,1),(2,-1),'RIGHT'),
+                            ('ALIGN',(4,1),(5,-1),'RIGHT'),
+                            ('FONTNAME',(0,0),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
+                            ('FONTSIZE',(0,0),(-1,-1),9),
+                            ('BOTTOMPADDING',(0,0),(-1,-1),6),
+                            ('TOPPADDING',(0,0),(-1,-1),6),
+                        ]))
+                    elems.append(t); elems.append(Spacer(1,10))
+                    if ci < len(chunks)-1:
+                        elems.append(PageBreak())
+            mat_rows = [[str(i+1), it.get("name",""), f"{it.get('quantity',0):.3f}", it.get("unit",""), f"{it.get('price_unit_net',0.0):.2f}", f"{it.get('total_net',0.0):.2f}"] for i,it in enumerate(materials)]
+            mat_sum = sum(it.get("total_net",0.0) for it in materials)
+            add_table_with_sum("MATERIAŁY", mat_rows, "SUMA MATERIAŁY:", mat_sum)
+            srv_rows = [[str(i+1), it.get("name",""), f"{it.get('quantity',0):.3f}", it.get("unit",""), f"{it.get('price_unit_net',0.0):.2f}", f"{it.get('total_net',0.0):.2f}"] for i,it in enumerate(services)]
+            srv_sum = sum(it.get("total_net",0.0) for it in services)
+            add_table_with_sum("ROBOCIZNA / USŁUGI", srv_rows, "SUMA USŁUGI:", srv_sum)
+        
+            # overall summary with improved styling
+            elems.append(Paragraph("PODSUMOWANIE", heading))
             elems.append(Spacer(1,4))
-            max_rows_per_table = 28
-            total_rows = len(rows)
-            chunks = [rows[i:i+max_rows_per_table] for i in range(0, total_rows, max_rows_per_table)]
-            if not chunks:
-                chunks = [[]]
-            for ci, chunk in enumerate(chunks):
-                tbl = [["Lp","Nazwa","Ilość","JM","Cena netto","Wartość netto"]] + chunk
-                if ci == len(chunks)-1:
-                    tbl.append(["", sum_label, "", "", "", f"{fmt_money_plain(sum_value)} zł"])
-                    t = Table(tbl, repeatRows=1, colWidths=[25,280,50,35,75,75])
-                    t.setStyle(TableStyle([
-                        ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
-                        ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
-                        ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
-                        ('ALIGN',(0,0),(0,-1),'CENTER'),
-                        ('ALIGN',(2,1),(2,-2),'RIGHT'),
-                        ('ALIGN',(4,1),(5,-2),'RIGHT'),
-                        ('ALIGN',(5,-1),(5,-1),'RIGHT'),
-                        ('SPAN',(1,-1),(4,-1)),
-                        ('BACKGROUND',(0,-1),(-1,-1),colors.HexColor("#E8F6F3")),
-                        ('FONTNAME',(0,0),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
-                        ('FONTSIZE',(0,0),(-1,-1),9),
-                        ('FONTNAME',(0,-1),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
-                        ('BOTTOMPADDING',(0,0),(-1,-1),6),
-                        ('TOPPADDING',(0,0),(-1,-1),6),
-                    ]))
-                else:
-                    t = Table(tbl, repeatRows=1, colWidths=[25,280,50,35,75,75])
-                    t.setStyle(TableStyle([
-                        ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
-                        ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
-                        ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
-                        ('ALIGN',(0,0),(0,-1),'CENTER'),
-                        ('ALIGN',(2,1),(2,-1),'RIGHT'),
-                        ('ALIGN',(4,1),(5,-1),'RIGHT'),
-                        ('FONTNAME',(0,0),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
-                        ('FONTSIZE',(0,0),(-1,-1),9),
-                        ('BOTTOMPADDING',(0,0),(-1,-1),6),
-                        ('TOPPADDING',(0,0),(-1,-1),6),
-                    ]))
-                elems.append(t); elems.append(Spacer(1,10))
-                if ci < len(chunks)-1:
-                    elems.append(PageBreak())
-        mat_rows = [[str(i+1), it.get("name",""), f"{it.get('quantity',0):.3f}", it.get("unit",""), f"{it.get('price_unit_net',0.0):.2f}", f"{it.get('total_net',0.0):.2f}"] for i,it in enumerate(materials)]
-        mat_sum = sum(it.get("total_net",0.0) for it in materials)
-        add_table_with_sum("MATERIAŁY", mat_rows, "SUMA MATERIAŁY:", mat_sum)
-        srv_rows = [[str(i+1), it.get("name",""), f"{it.get('quantity',0):.3f}", it.get("unit",""), f"{it.get('price_unit_net',0.0):.2f}", f"{it.get('total_net',0.0):.2f}"] for i,it in enumerate(services)]
-        srv_sum = sum(it.get("total_net",0.0) for it in services)
-        add_table_with_sum("ROBOCIZNA / USŁUGI", srv_rows, "SUMA USŁUGI:", srv_sum)
+            summary_rows = [["Opis","Netto","VAT","Brutto"]]
+            for vat,s in sorted(totals["by_vat"].items()):
+                summary_rows.append([f"VAT {vat} %", fmt_money_plain(s.get("net",0.0))+" zł", fmt_money_plain(s.get("vat",0.0))+" zł", fmt_money_plain(s.get("gross",0.0))+" zł"])
+            tinfo = totals["transport"]
+            summary_rows.append([f"Transport ({tinfo.get('percent',0)}%)", fmt_money_plain(tinfo.get("net",0.0))+" zł", fmt_money_plain(tinfo.get("vat",0.0))+" zł", fmt_money_plain(tinfo.get("gross",0.0))+" zł"])
+            ssum = totals["summary"]
+            summary_rows.append(["RAZEM DO ZAPŁATY", fmt_money_plain(ssum.get("net",0.0))+" zł", fmt_money_plain(ssum.get("vat",0.0))+" zł", fmt_money_plain(ssum.get("gross",0.0))+" zł"])
+            sum_tbl = Table(summary_rows, colWidths=[180,120,100,120])
+            sum_tbl.setStyle(TableStyle([
+                ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
+                ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
+                ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
+                ('ALIGN',(1,0),(-1,-1),'RIGHT'),
+                ('FONTNAME',(0,0),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
+                ('FONTSIZE',(0,0),(-1,-1),9),
+                ('BACKGROUND',(0,-1),(-1,-1),colors.HexColor("#27AE60")),
+                ('TEXTCOLOR',(0,-1),(-1,-1),colors.white),
+                ('FONTNAME',(0,-1),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
+                ('BOTTOMPADDING',(0,0),(-1,-1),8),
+                ('TOPPADDING',(0,0),(-1,-1),8),
+            ]))
+            elems.append(sum_tbl)
+            elems.append(Spacer(1,15))
         
-        # overall summary with improved styling
-        elems.append(Paragraph("PODSUMOWANIE", heading))
-        elems.append(Spacer(1,4))
-        summary_rows = [["Opis","Netto","VAT","Brutto"]]
-        for vat,s in sorted(totals["by_vat"].items()):
-            summary_rows.append([f"VAT {vat} %", fmt_money_plain(s.get("net",0.0))+" zł", fmt_money_plain(s.get("vat",0.0))+" zł", fmt_money_plain(s.get("gross",0.0))+" zł"])
-        tinfo = totals["transport"]
-        summary_rows.append([f"Transport ({tinfo.get('percent',0)}%)", fmt_money_plain(tinfo.get("net",0.0))+" zł", fmt_money_plain(tinfo.get("vat",0.0))+" zł", fmt_money_plain(tinfo.get("gross",0.0))+" zł"])
-        ssum = totals["summary"]
-        summary_rows.append(["RAZEM DO ZAPŁATY", fmt_money_plain(ssum.get("net",0.0))+" zł", fmt_money_plain(ssum.get("vat",0.0))+" zł", fmt_money_plain(ssum.get("gross",0.0))+" zł"])
-        sum_tbl = Table(summary_rows, colWidths=[180,120,100,120])
-        sum_tbl.setStyle(TableStyle([
-            ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
-            ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
-            ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
-            ('ALIGN',(1,0),(-1,-1),'RIGHT'),
-            ('FONTNAME',(0,0),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
-            ('FONTSIZE',(0,0),(-1,-1),9),
-            ('BACKGROUND',(0,-1),(-1,-1),colors.HexColor("#27AE60")),
-            ('TEXTCOLOR',(0,-1),(-1,-1),colors.white),
-            ('FONTNAME',(0,-1),(-1,-1), self._registered_pdf_font_name or styles['Normal'].fontName),
-            ('BOTTOMPADDING',(0,0),(-1,-1),8),
-            ('TOPPADDING',(0,0),(-1,-1),8),
-        ]))
-        elems.append(sum_tbl)
-        elems.append(Spacer(1,15))
+            # comment section
+            comment = self.comment_text.get("1.0","end").strip()
+            if comment:
+                elems.append(Paragraph("Komentarz:", heading))
+                elems.append(Spacer(1,4))
+                elems.append(Paragraph(comment.replace("\n","<br/>"), normal))
+                elems.append(Spacer(1,10))
         
-        # comment section
-        comment = self.comment_text.get("1.0","end").strip()
-        if comment:
-            elems.append(Paragraph("Komentarz:", heading))
-            elems.append(Spacer(1,4))
-            elems.append(Paragraph(comment.replace("\n","<br/>"), normal))
-            elems.append(Spacer(1,10))
+            # Footnotes/disclaimers
+            footnote_style = ParagraphStyle("FootnoteApp", parent=normal, fontSize=8, leading=10, textColor=colors.HexColor("#7F8C8D"))
+            footnotes = [
+                "* Transport pionowy, Praca sprzętu, Materiały pomocnicze i Koszty zakupu = 3% od Wartości (min 100 zł)",
+                "** Cena bez utylizacji odpadów",
+                "*** Ceny materiałów mogą ulec zmianie w zależności od sytuacji rynkowej"
+            ]
+            for fn in footnotes:
+                elems.append(Paragraph(fn, footnote_style))
+            elems.append(Spacer(1,15))
         
-        # Footnotes/disclaimers
-        footnote_style = ParagraphStyle("FootnoteApp", parent=normal, fontSize=8, leading=10, textColor=colors.HexColor("#7F8C8D"))
-        footnotes = [
-            "* Transport pionowy, Praca sprzętu, Materiały pomocnicze i Koszty zakupu = 3% od Wartości (min 100 zł)",
-            "** Cena bez utylizacji odpadów",
-            "*** Ceny materiałów mogą ulec zmianie w zależności od sytuacji rynkowej"
-        ]
-        for fn in footnotes:
-            elems.append(Paragraph(fn, footnote_style))
-        elems.append(Spacer(1,15))
+            # Footer with company slogan
+            footer_style = ParagraphStyle("FooterApp", parent=normal, fontSize=12, leading=14, alignment=1, textColor=colors.HexColor("#F1C40F"))
+            elems.append(Paragraph("<b>TYLKO DACHY TYLKO VICTOR</b>", footer_style))
         
-        # Footer with company slogan
-        footer_style = ParagraphStyle("FooterApp", parent=normal, fontSize=12, leading=14, alignment=1, textColor=colors.HexColor("#F1C40F"))
-        elems.append(Paragraph("<b>TYLKO DACHY TYLKO VICTOR</b>", footer_style))
-        
-        # Build the PDF
-        doc.build(elems)
+            # Build the PDF
+            doc.build(elems)
+            return True
+        except Exception:
+            return False
 
     # export PDF (kept from previous working implementation)
     def export_cost_pdf(self):
@@ -1668,6 +1719,46 @@ Wersja: 4.7
         
         # Clean up temporary file
         PDFPreview.cleanup_temp_file(temp_path)
+
+    def send_cost_email(self):
+        """Open dialog to send cost estimate via email."""
+        if not EMAIL_SERVICE_AVAILABLE or not self.email_service:
+            messagebox.showerror("Niedostępne", "Moduł email nie jest dostępny.\nZainstaluj: pip install keyring")
+            return
+        
+        if not REPORTLAB_AVAILABLE:
+            messagebox.showerror("Brak biblioteki", "Zainstaluj reportlab: pip install reportlab")
+            return
+        
+        if not self.cost_items:
+            messagebox.showwarning("Brak pozycji", "Brak pozycji do wysłania.")
+            return
+        
+        from app.ui.dialogs.send_email_dialog import SendEmailDialog
+        
+        client = None
+        if hasattr(self, 'client_cb') and self.client_cb.get():
+            client = next((c for c in self.clients if c.get('name') == self.client_cb.get()), None)
+        
+        def generate_pdf_callback(path):
+            return self._generate_pdf_to_path(path)
+        
+        SendEmailDialog(
+            self.master,
+            self.email_service,
+            client=client,
+            pdf_generator_callback=generate_pdf_callback,
+            quote_name=self.quote_name.get()
+        )
+
+    def open_email_config(self):
+        """Open email configuration dialog."""
+        if not EMAIL_SERVICE_AVAILABLE or not self.email_service:
+            messagebox.showerror("Niedostępne", "Moduł email nie jest dostępny.\nZainstaluj: pip install keyring")
+            return
+        
+        from app.ui.dialogs.email_config_dialog import EmailConfigDialog
+        EmailConfigDialog(self.master, self.email_service, on_save=self._save_email_settings)
 
     # save/load costfile (include comment) - when saving, update last_invoice_seq in settings based on current invoice_number
     def save_costfile(self):
