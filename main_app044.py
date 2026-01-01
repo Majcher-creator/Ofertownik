@@ -77,8 +77,8 @@ except ImportError:
 COLORS = {
     'primary': '#2C3E50',        # Dark blue-gray for headers
     'secondary': '#34495E',      # Lighter blue-gray
-    'accent': '#E67E22',         # Orange accent (roof tiles color)
-    'accent_dark': '#D35400',    # Darker orange
+    'accent': '#F1C40F',         # Yellow accent
+    'accent_dark': '#D4AC0D',    # Darker yellow
     'success': '#27AE60',        # Green for success
     'warning': '#F39C12',        # Yellow for warnings
     'danger': '#E74C3C',         # Red for errors
@@ -87,8 +87,8 @@ COLORS = {
     'text_dark': '#2C3E50',      # Dark text
     'text_light': '#7F8C8D',     # Light gray text
     'border': '#BDC3C7',         # Border color
-    'table_header': '#FCD5B4',   # Table header (warm orange)
-    'table_alt': '#FFF9F2',      # Alternate row color
+    'table_header': '#F9E79F',   # Table header (warm yellow)
+    'table_alt': '#FEFCF3',      # Alternate row color
 }
 
 # ---------------- Helpers ----------------
@@ -1427,7 +1427,7 @@ Wersja: 4.7
         styles = getSampleStyleSheet(); base_font = self._registered_pdf_font_name or styles['Normal'].fontName
         normal = ParagraphStyle("NormalApp", parent=styles['Normal'], fontName=base_font, fontSize=9, leading=12)
         normal_bold = ParagraphStyle("NormalBoldApp", parent=normal, fontName=base_font, fontSize=9, leading=12, textColor=colors.HexColor("#2C3E50"))
-        heading = ParagraphStyle("HeadingApp", parent=styles['Heading3'], fontName=base_font, fontSize=11, leading=14, textColor=colors.HexColor("#E67E22"))
+        heading = ParagraphStyle("HeadingApp", parent=styles['Heading3'], fontName=base_font, fontSize=11, leading=14, textColor=colors.HexColor("#F1C40F"))
         title = ParagraphStyle("TitleApp", parent=styles['Title'], fontName=base_font, fontSize=16, leading=18, alignment=1, textColor=colors.HexColor("#2C3E50"))
         subtitle = ParagraphStyle("SubtitleApp", parent=styles['Normal'], fontName=base_font, fontSize=10, leading=12, alignment=1, textColor=colors.HexColor("#7F8C8D"))
         elems = []
@@ -1506,7 +1506,7 @@ Wersja: 4.7
                     tbl.append(["", sum_label, "", "", "", f"{fmt_money_plain(sum_value)} zł"])
                     t = Table(tbl, repeatRows=1, colWidths=[25,280,50,35,75,75])
                     t.setStyle(TableStyle([
-                        ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#FCD5B4")),
+                        ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
                         ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
                         ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
                         ('ALIGN',(0,0),(0,-1),'CENTER'),
@@ -1524,7 +1524,7 @@ Wersja: 4.7
                 else:
                     t = Table(tbl, repeatRows=1, colWidths=[25,280,50,35,75,75])
                     t.setStyle(TableStyle([
-                        ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#FCD5B4")),
+                        ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
                         ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
                         ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
                         ('ALIGN',(0,0),(0,-1),'CENTER'),
@@ -1557,7 +1557,7 @@ Wersja: 4.7
         summary_rows.append(["RAZEM DO ZAPŁATY", fmt_money_plain(ssum.get("net",0.0))+" zł", fmt_money_plain(ssum.get("vat",0.0))+" zł", fmt_money_plain(ssum.get("gross",0.0))+" zł"])
         sum_tbl = Table(summary_rows, colWidths=[180,120,100,120])
         sum_tbl.setStyle(TableStyle([
-            ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#FCD5B4")),
+            ('BACKGROUND',(0,0),(-1,0),colors.HexColor("#F9E79F")),
             ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor("#2C3E50")),
             ('GRID',(0,0),(-1,-1),0.5,colors.HexColor("#BDC3C7")),
             ('ALIGN',(1,0),(-1,-1),'RIGHT'),
@@ -1592,7 +1592,7 @@ Wersja: 4.7
         elems.append(Spacer(1,15))
         
         # Footer with company slogan
-        footer_style = ParagraphStyle("FooterApp", parent=normal, fontSize=12, leading=14, alignment=1, textColor=colors.HexColor("#E67E22"))
+        footer_style = ParagraphStyle("FooterApp", parent=normal, fontSize=12, leading=14, alignment=1, textColor=colors.HexColor("#F1C40F"))
         elems.append(Paragraph("<b>TYLKO DACHY TYLKO VICTOR</b>", footer_style))
         
         # Build the PDF
