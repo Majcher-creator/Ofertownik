@@ -11,8 +11,8 @@ from typing import Dict
 COLORS: Dict[str, str] = {
     'primary': '#2C3E50',        # Dark blue-gray for headers
     'secondary': '#34495E',      # Lighter blue-gray
-    'accent': '#E67E22',         # Orange accent (roof tiles color)
-    'accent_dark': '#D35400',    # Darker orange
+    'accent': '#F1C40F',         # Sunny yellow accent (was orange)
+    'accent_dark': '#D4AC0D',    # Darker yellow (was darker orange)
     'success': '#27AE60',        # Green for success
     'warning': '#F39C12',        # Yellow for warnings
     'danger': '#E74C3C',         # Red for errors
@@ -21,16 +21,16 @@ COLORS: Dict[str, str] = {
     'text_dark': '#2C3E50',      # Dark text
     'text_light': '#7F8C8D',     # Light gray text
     'border': '#BDC3C7',         # Border color
-    'table_header': '#FCD5B4',   # Table header (warm orange)
-    'table_alt': '#FFF9F2',      # Alternate row color
+    'table_header': '#F9E79F',   # Light yellow table header (was warm orange)
+    'table_alt': '#FEFCF3',      # Very light yellow alternate row (was light orange)
 }
 
 # Dark mode color palette
 COLORS_DARK: Dict[str, str] = {
     'primary': '#1A252F',        # Very dark blue-gray
     'secondary': '#2C3E50',      # Dark blue-gray
-    'accent': '#E67E22',         # Orange accent (same)
-    'accent_dark': '#D35400',    # Darker orange (same)
+    'accent': '#F1C40F',         # Sunny yellow accent (was orange)
+    'accent_dark': '#D4AC0D',    # Darker yellow (was darker orange)
     'success': '#27AE60',        # Green (same)
     'warning': '#F39C12',        # Yellow (same)
     'danger': '#E74C3C',         # Red (same)
@@ -39,8 +39,8 @@ COLORS_DARK: Dict[str, str] = {
     'text_dark': '#E0E0E0',      # Light text for dark mode
     'text_light': '#9B9B9B',     # Gray text for dark mode
     'border': '#3E3E42',         # Dark border
-    'table_header': '#3E2723',   # Dark table header
-    'table_alt': '#252526',      # Dark alternate row
+    'table_header': '#5D4E37',   # Dark yellow table header (was dark brown)
+    'table_alt': '#3D3D3D',      # Dark alternate row
 }
 
 

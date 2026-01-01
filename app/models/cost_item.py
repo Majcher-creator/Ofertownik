@@ -19,6 +19,13 @@ class CostItem:
     category: str = "material"  # "material" or "service"
     note: str = ""
     
+    # Grouping support
+    group: str = ""  # Group name for organizing items
+    
+    # Margin calculation support
+    margin_percent: Optional[float] = None  # Override global margin for this item
+    purchase_price: Optional[float] = None  # Original purchase price (if different from price_unit_net)
+    
     # Calculated fields (computed by cost_calculations)
     total_net: float = 0.0
     vat_value: float = 0.0
@@ -39,6 +46,9 @@ class CostItem:
             vat_rate=int(data.get('vat_rate', 23)),
             category=data.get('category', 'material'),
             note=data.get('note', ''),
+            group=data.get('group', ''),
+            margin_percent=float(data['margin_percent']) if data.get('margin_percent') is not None else None,
+            purchase_price=float(data['purchase_price']) if data.get('purchase_price') is not None else None,
             total_net=float(data.get('total_net', 0.0)),
             vat_value=float(data.get('vat_value', 0.0)),
             total_gross=float(data.get('total_gross', 0.0))
