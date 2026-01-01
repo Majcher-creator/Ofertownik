@@ -142,7 +142,10 @@ Z poważaniem,
         # Generate PDF to temp file
         if self.pdf_generator:
             try:
-                self.temp_pdf_path = tempfile.mktemp(suffix='.pdf')
+                # Use NamedTemporaryFile for secure temporary file creation
+                import tempfile
+                temp_fd, self.temp_pdf_path = tempfile.mkstemp(suffix='.pdf')
+                os.close(temp_fd)  # Close the file descriptor, we'll use the path
                 if not self.pdf_generator(self.temp_pdf_path):
                     messagebox.showerror("Błąd", "Nie udało się wygenerować PDF",
                                         parent=self.dialog)
@@ -172,6 +175,6 @@ Z poważaniem,
         if self.temp_pdf_path and os.path.exists(self.temp_pdf_path):
             try:
                 os.remove(self.temp_pdf_path)
-            except:
-                pass
+            except OSError:
+                pass  # Silently ignore file removal errors
         self.dialog.destroy()

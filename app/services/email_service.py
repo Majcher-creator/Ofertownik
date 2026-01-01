@@ -153,14 +153,18 @@ class EmailService:
             
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 if self.use_tls:
+                    # Verify TLS connection is established
                     server.starttls(context=context)
+                    # Verify the TLS connection succeeded
+                    if not server.sock:
+                        return {'success': False, 'message': 'Błąd nawiązywania połączenia TLS'}
                 server.login(self.sender_email, pwd)
                 server.sendmail(self.sender_email, recipients, msg.as_string())
             
             return {'success': True, 'message': f'Email wysłany do {to_email}'}
             
         except smtplib.SMTPAuthenticationError:
-            return {'success': False, 'message': 'Błąd autoryzacji. Sprawdź email i hasło.\nDla Gmail użyj App Password.'}
+            return {'success': False, 'message': 'Błąd autoryzacji. Sprawdź email i hasło. Dla Gmail użyj App Password.'}
         except smtplib.SMTPException as e:
             return {'success': False, 'message': f'Błąd SMTP: {str(e)}'}
         except Exception as e:
