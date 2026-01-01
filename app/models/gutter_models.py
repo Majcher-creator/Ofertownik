@@ -10,13 +10,22 @@ from dataclasses import dataclass, field, asdict
 class GutterAccessory:
     """
     Represents a single accessory in a gutter system.
+    
+    Attributes:
+        name: Name of the accessory
+        unit: Unit of measurement (e.g., 'mb' for meters, 'szt.' for pieces)
+        price_unit_net: Net unit price
+        quantity: Quantity (automatically calculated if auto_calculate is True)
+        vat_rate: VAT rate percentage (default: 8)
+        category: Category - either 'material' or 'service'
+        auto_calculate: Whether to automatically calculate quantity based on roof parameters
     """
     name: str
     unit: str
     price_unit_net: float
     quantity: float = 0.0
     vat_rate: int = 8
-    category: str = "material"
+    category: str = "material"  # 'material' or 'service'
     auto_calculate: bool = True  # Whether quantity is auto-calculated
     
     def to_dict(self) -> Dict[str, Any]:

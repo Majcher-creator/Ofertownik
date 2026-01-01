@@ -8,7 +8,29 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from app.models.gutter_models import GutterSystem, GutterTemplate, GutterAccessory
-from gutter_calculations import calculate_guttering
+
+try:
+    from gutter_calculations import calculate_guttering
+except ImportError:
+    # Fallback if gutter_calculations module is not available
+    def calculate_guttering(okap_length_m: float, roof_height_m: float, 
+                          num_downpipes: Optional[int] = None) -> Dict[str, float]:
+        """Fallback calculation function."""
+        import math
+        if num_downpipes is None:
+            num_downpipes = max(1, math.ceil(okap_length_m / 10.0)) if okap_length_m > 0 else 0
+        
+        return {
+            "total_gutter_length_m": okap_length_m,
+            "total_downpipe_length_m": num_downpipes * roof_height_m,
+            "num_downpipes": num_downpipes,
+            "num_gutter_hooks": math.ceil(okap_length_m / 0.5) if okap_length_m > 0 else 0,
+            "num_gutter_connectors": max(0, math.ceil(okap_length_m / 3.0) - 1),
+            "num_downpipe_outlets": num_downpipes,
+            "num_downpipe_clamps": math.ceil(num_downpipes * roof_height_m / 2.0) if roof_height_m > 0 else 0,
+            "num_downpipe_elbows": num_downpipes * 2,
+            "num_end_caps": 2
+        }
 
 
 class GutterSystemManager:

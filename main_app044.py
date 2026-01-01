@@ -2296,56 +2296,6 @@ Wersja: 4.7
             messagebox.showinfo("Dodano", f"Dodano {len(items)} pozycji orynnowania do kosztorysu.")
             self.notebook.select(self.cost_tab)
     
-        """Calculate guttering requirements"""
-        try:
-            okap = self.gutter_okap_length.get()
-            height = self.gutter_roof_height.get()
-            num_dp = self.gutter_num_downpipes.get() if self.gutter_num_downpipes.get() > 0 else None
-            
-            if CALC_MODULES_AVAILABLE:
-                results = calculate_guttering(okap, height, num_dp)
-            else:
-                # Fallback calculation
-                num_downpipes = num_dp if num_dp else max(1, math.ceil(okap / 10.0))
-                results = {
-                    "total_gutter_length_m": okap,
-                    "total_downpipe_length_m": num_downpipes * height,
-                    "num_downpipes": num_downpipes,
-                    "num_gutter_hooks": math.ceil(okap / 0.5) if okap > 0 else 0,
-                    "num_gutter_connectors": max(0, math.ceil(okap / 3.0) - 1),
-                    "num_downpipe_outlets": num_downpipes,
-                    "num_downpipe_clamps": math.ceil(num_downpipes * height / 2.0) if height > 0 else 0,
-                    "num_downpipe_elbows": num_downpipes * 2,
-                    "num_end_caps": 2
-                }
-            
-            output = []
-            output.append("🌧️ KALKULATOR ORYNNOWANIA")
-            output.append("=" * 40)
-            output.append("")
-            output.append(f"📏 Długość rynny: {results['total_gutter_length_m']:.2f} m")
-            output.append(f"📏 Długość rur spustowych: {results['total_downpipe_length_m']:.2f} m")
-            output.append(f"🔢 Liczba rur spustowych: {results['num_downpipes']}")
-            output.append("")
-            output.append("📦 Akcesoria:")
-            output.append(f"   • Haki rynnowe: {results['num_gutter_hooks']} szt.")
-            output.append(f"   • Łączniki rynien: {results['num_gutter_connectors']} szt.")
-            output.append(f"   • Wyloty do rur: {results['num_downpipe_outlets']} szt.")
-            output.append(f"   • Obejmy rurowe: {results['num_downpipe_clamps']} szt.")
-            output.append(f"   • Kolanka: {results['num_downpipe_elbows']} szt.")
-            output.append(f"   • Zaślepki: {results['num_end_caps']} szt.")
-            
-            self.gutter_results_text.config(state="normal")
-            self.gutter_results_text.delete("1.0", "end")
-            self.gutter_results_text.insert("1.0", "\n".join(output))
-            self.gutter_results_text.config(state="disabled")
-            
-            self._last_gutter_calc = results
-            
-        except Exception as e:
-            messagebox.showerror("Błąd obliczeń", f"Wystąpił błąd: {e}")
-    
-    
     def create_chimney_tab(self):
         """Create chimney calculation tab"""
         self.chimney_tab = ttk.Frame(self.notebook)
