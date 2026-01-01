@@ -1,0 +1,357 @@
+{
+  "predefined_systems": [
+    {
+      "name": "System PVC półokrągły 125mm",
+      "system_type": "pvc",
+      "description": "Popularny system rynnowy PVC o przekroju półokrągłym, średnica 125mm",
+      "accessories": [
+        {
+          "name": "Rynna PVC 125mm",
+          "unit": "mb",
+          "price_unit_net": 25.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Rura spustowa PVC 90mm",
+          "unit": "mb",
+          "price_unit_net": 28.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Hak rynnowy PVC",
+          "unit": "szt.",
+          "price_unit_net": 8.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Łącznik rynny PVC",
+          "unit": "szt.",
+          "price_unit_net": 12.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Wylot do rury PVC",
+          "unit": "szt.",
+          "price_unit_net": 15.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Obejma rurowa PVC",
+          "unit": "szt.",
+          "price_unit_net": 10.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Kolano rury 67° PVC",
+          "unit": "szt.",
+          "price_unit_net": 18.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Zaślepka rynny PVC",
+          "unit": "szt.",
+          "price_unit_net": 6.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Montaż systemu rynnowego",
+          "unit": "mb",
+          "price_unit_net": 15.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "service",
+          "auto_calculate": true
+        }
+      ]
+    },
+    {
+      "name": "System kwadratowy stalowy",
+      "system_type": "steel",
+      "description": "Stalowy system rynnowy o przekroju kwadratowym, powlekany",
+      "accessories": [
+        {
+          "name": "Rynna stalowa kwadratowa 150mm",
+          "unit": "mb",
+          "price_unit_net": 45.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Rura spustowa stalowa 100mm",
+          "unit": "mb",
+          "price_unit_net": 48.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Hak rynnowy stalowy",
+          "unit": "szt.",
+          "price_unit_net": 12.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Łącznik rynny stalowy",
+          "unit": "szt.",
+          "price_unit_net": 18.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Wylot do rury stalowy",
+          "unit": "szt.",
+          "price_unit_net": 22.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Obejma rurowa stalowa",
+          "unit": "szt.",
+          "price_unit_net": 15.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Kolano rury 67° stalowe",
+          "unit": "szt.",
+          "price_unit_net": 25.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Zaślepka rynny stalowa",
+          "unit": "szt.",
+          "price_unit_net": 10.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Montaż systemu rynnowego",
+          "unit": "mb",
+          "price_unit_net": 18.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "service",
+          "auto_calculate": true
+        }
+      ]
+    },
+    {
+      "name": "System miedziany premium",
+      "system_type": "copper",
+      "description": "Ekskluzywny system rynnowy wykonany z miedzi",
+      "accessories": [
+        {
+          "name": "Rynna miedziana 150mm",
+          "unit": "mb",
+          "price_unit_net": 120.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Rura spustowa miedziana 100mm",
+          "unit": "mb",
+          "price_unit_net": 135.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Hak rynnowy miedziany",
+          "unit": "szt.",
+          "price_unit_net": 25.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Łącznik rynny miedziany",
+          "unit": "szt.",
+          "price_unit_net": 35.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Wylot do rury miedziany",
+          "unit": "szt.",
+          "price_unit_net": 45.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Obejma rurowa miedziana",
+          "unit": "szt.",
+          "price_unit_net": 28.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Kolano rury 67° miedziane",
+          "unit": "szt.",
+          "price_unit_net": 48.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Zaślepka rynny miedziana",
+          "unit": "szt.",
+          "price_unit_net": 22.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Montaż systemu rynnowego miedziany",
+          "unit": "mb",
+          "price_unit_net": 25.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "service",
+          "auto_calculate": true
+        }
+      ]
+    },
+    {
+      "name": "System tytan-cynk",
+      "system_type": "zinc-titanium",
+      "description": "Trwały system rynnowy z tytanu-cynku",
+      "accessories": [
+        {
+          "name": "Rynna tytan-cynk 150mm",
+          "unit": "mb",
+          "price_unit_net": 95.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Rura spustowa tytan-cynk 100mm",
+          "unit": "mb",
+          "price_unit_net": 110.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Hak rynnowy tytan-cynk",
+          "unit": "szt.",
+          "price_unit_net": 20.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Łącznik rynny tytan-cynk",
+          "unit": "szt.",
+          "price_unit_net": 28.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Wylot do rury tytan-cynk",
+          "unit": "szt.",
+          "price_unit_net": 35.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Obejma rurowa tytan-cynk",
+          "unit": "szt.",
+          "price_unit_net": 22.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Kolano rury 67° tytan-cynk",
+          "unit": "szt.",
+          "price_unit_net": 38.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Zaślepka rynny tytan-cynk",
+          "unit": "szt.",
+          "price_unit_net": 18.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "material",
+          "auto_calculate": true
+        },
+        {
+          "name": "Montaż systemu rynnowego",
+          "unit": "mb",
+          "price_unit_net": 22.0,
+          "quantity": 0.0,
+          "vat_rate": 8,
+          "category": "service",
+          "auto_calculate": true
+        }
+      ]
+    }
+  ],
+  "user_templates": []
+}
