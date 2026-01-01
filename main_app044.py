@@ -2059,7 +2059,7 @@ Wersja: 4.7
         # Import dialog
         try:
             from app.ui.gutter_tab import GutterAccessoryEditDialog
-            dialog = GutterAccessoryEditDialog(self.root, accessory)
+            dialog = GutterAccessoryEditDialog(self.master, accessory)
             
             if dialog.result:
                 # Update accessory
@@ -2091,7 +2091,7 @@ Wersja: 4.7
             from app.ui.gutter_tab import SaveTemplateDialog
             from app.models.gutter_models import GutterTemplate
             
-            dialog = SaveTemplateDialog(self.root)
+            dialog = SaveTemplateDialog(self.master)
             if dialog.result:
                 template = GutterTemplate(
                     name=dialog.result,
@@ -2119,10 +2119,10 @@ Wersja: 4.7
         # Create selection dialog
         template_names = [t.name for t in templates]
         
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.master)
         dialog.title("Wybierz szablon")
         dialog.geometry("400x300")
-        dialog.transient(self.root)
+        dialog.transient(self.master)
         dialog.grab_set()
         
         ttk.Label(dialog, text="Wybierz szablon do wczytania:").pack(padx=10, pady=10)
@@ -2256,7 +2256,7 @@ Wersja: 4.7
                     messagebox.showinfo("Brak danych", "Najpierw oblicz orynnowanie aby uzyskać ilości.")
                     return
                 
-                dialog = GutterAccessoriesDialog(self.root, accessories_to_show)
+                dialog = GutterAccessoriesDialog(self.master, accessories_to_show)
                 
                 if dialog.result:
                     # Add selected items to cost estimate
