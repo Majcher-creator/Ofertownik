@@ -67,10 +67,16 @@ try:
     from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text, safe_filename
     from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
     from app.services.pdf_preview import PDFPreview
+    from app.models.history import CostEstimateHistory
+    from app.ui.dialogs.history_dialog import HistoryDialog
+    from app.ui.dialogs.create_from_existing_dialog import CreateFromExistingDialog
     APP_MODULES_AVAILABLE = True
 except ImportError:
     APP_MODULES_AVAILABLE = False
     PDFPreview = None
+    CostEstimateHistory = None
+    HistoryDialog = None
+    CreateFromExistingDialog = None
 
 # ---------------- Color Theme ----------------
 # Modern color palette for roofing application
@@ -371,6 +377,11 @@ class RoofCalculatorApp:
         self.materials_db: List[Dict[str,Any]] = []
         self.cost_items: List[Dict[str,Any]] = []
         self.logo_path: Optional[str] = None
+        
+        # History and recent files
+        self.history = CostEstimateHistory() if CostEstimateHistory else None
+        self.recent_files: List[str] = []
+        
         # UI vars
         self.transport_percent = tk.DoubleVar(value=3.0)
         self.transport_vat = tk.IntVar(value=23)
@@ -411,7 +422,7 @@ class RoofCalculatorApp:
                 except Exception:
                     self._registered_pdf_font_name = None
         # load db/settings
-        self._load_local_db(); self._load_settings()
+        self._load_local_db(); self._load_settings(); self._load_recent_files()
         # build UI
         self.create_header_bar()
         self.create_menu()
@@ -470,9 +481,147 @@ class RoofCalculatorApp:
         try:
             data = dict(self.settings)
             data["logo"] = self.logo_path
+            data["recent_files"] = self.recent_files[:10]  # Keep last 10 recent files
             with open(p,"w",encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             messagebox.showerror("Błąd zapisu ustawień", f"Nie udało się zapisać ustawień:\n{e}")
+
+    def _load_recent_files(self):
+        """Load list of recently used files from settings."""
+        self.recent_files = self.settings.get("recent_files", [])
+        # Filter out files that no longer exist
+        self.recent_files = [f for f in self.recent_files if os.path.exists(f)]
+
+    def _add_recent_file(self, filepath: str):
+        """Add a file to the list of recent files."""
+        # Remove if already in list
+        if filepath in self.recent_files:
+            self.recent_files.remove(filepath)
+        # Add to front
+        self.recent_files.insert(0, filepath)
+        # Keep only last 10
+        self.recent_files = self.recent_files[:10]
+        # Save settings
+        self._save_settings()
+
+    def save_history_snapshot(self, description: str):
+        """Save current state to history."""
+        if not self.history:
+            return
+        
+        # Prepare metadata
+        metadata = {
+            'client': self.client_cb.get() if hasattr(self, 'client_cb') else '',
+            'invoice_number': self.invoice_number.get(),
+            'invoice_date': self.invoice_date.get(),
+            'quote_name': self.quote_name.get(),
+            'transport_percent': float(self.transport_percent.get()),
+            'transport_vat': int(self.transport_vat.get())
+        }
+        
+        # Add entry to history
+        self.history.add_entry(description, self.cost_items.copy(), metadata)
+
+    def show_history(self):
+        """Open the history dialog."""
+        if not self.history or not HistoryDialog:
+            messagebox.showinfo("Historia niedostępna", 
+                              "Funkcja historii nie jest dostępna.")
+            return
+        
+        if not self.history.get_all_entries():
+            messagebox.showinfo("Brak historii", 
+                              "Brak zapisanych wersji w historii.\n\n"
+                              "Historia jest zapisywana automatycznie przy zapisie kosztorysu.")
+            return
+        
+        def on_restore(entry):
+            """Restore a version from history."""
+            if messagebox.askyesno("Potwierdź przywrócenie", 
+                                  "Aktualne zmiany zostaną utracone. Kontynuować?"):
+                # Restore items
+                self.cost_items = entry.items_snapshot.copy()
+                
+                # Restore metadata if available
+                if entry.metadata:
+                    if 'client' in entry.metadata and hasattr(self, 'client_cb'):
+                        self.client_cb.set(entry.metadata['client'])
+                    if 'invoice_number' in entry.metadata:
+                        self.invoice_number.set(entry.metadata['invoice_number'])
+                    if 'invoice_date' in entry.metadata:
+                        self.invoice_date.set(entry.metadata['invoice_date'])
+                    if 'quote_name' in entry.metadata:
+                        self.quote_name.set(entry.metadata['quote_name'])
+                    if 'transport_percent' in entry.metadata:
+                        self.transport_percent.set(entry.metadata['transport_percent'])
+                    if 'transport_vat' in entry.metadata:
+                        self.transport_vat.set(entry.metadata['transport_vat'])
+                
+                # Refresh UI
+                self._refresh_cost_ui()
+                
+                # Save snapshot of restoration
+                self.save_history_snapshot(f"Przywrócono wersję {entry.version}")
+                
+                messagebox.showinfo("Przywrócono", 
+                                  f"Przywrócono wersję {entry.version} z historii.")
+        
+        dialog = HistoryDialog(self.master, self.history, on_restore)
+
+    def create_from_existing(self):
+        """Open dialog to create estimate from existing file or template."""
+        if not CreateFromExistingDialog:
+            messagebox.showinfo("Funkcja niedostępna", 
+                              "Funkcja tworzenia z istniejącego nie jest dostępna.")
+            return
+        
+        def on_create(data):
+            """Handle creation of new estimate from data."""
+            if self.cost_items or (hasattr(self, "comment_text") and 
+                                  self.comment_text.get("1.0", "end").strip()):
+                if not messagebox.askyesno("Zastąp kosztorys", 
+                                          "Aktualny kosztorys zostanie zastąpiony. Kontynuować?"):
+                    return
+            
+            # Load data
+            self.cost_items = data.get('items', [])
+            
+            # Set client
+            if 'client' in data and hasattr(self, 'client_cb'):
+                self.client_cb.set(data['client'])
+            
+            # Set transport settings
+            if 'transport_percent' in data:
+                self.transport_percent.set(data['transport_percent'])
+            if 'transport_vat' in data:
+                self.transport_vat.set(data['transport_vat'])
+            
+            # Set quote name
+            if 'quote_name' in data:
+                self.quote_name.set(data['quote_name'])
+            
+            # Set comment
+            if 'comment' in data and hasattr(self, 'comment_text'):
+                self.comment_text.delete("1.0", "end")
+                self.comment_text.insert("1.0", data['comment'])
+            
+            # Get new invoice number
+            seq = self._get_next_seq_and_set()
+            year = datetime.now().year
+            self.invoice_number.set(f"{year}-{seq:03d}")
+            
+            # Refresh UI
+            self._refresh_cost_ui()
+            
+            # Save history snapshot
+            quote_name = data.get('quote_name', 'nowy')
+            self.save_history_snapshot(f"Utworzono z: {quote_name}")
+            
+            messagebox.showinfo("Utworzono", 
+                              "Utworzono nowy kosztorys na podstawie istniejącego.")
+        
+        dialog = CreateFromExistingDialog(self.master, self.recent_files, on_create)
+
 
     # invoice numbering using settings.json
     def _get_next_seq_and_set(self) -> int:
@@ -587,6 +736,9 @@ Wersja: 4.7
         file_menu.add_command(label="Nowy kosztorys", command=self.new_cost_estimate, accelerator="Ctrl+N")
         file_menu.add_command(label="Zapisz kosztorys (.cost.json)", command=self.save_costfile, accelerator="Ctrl+S")
         file_menu.add_command(label="Wczytaj kosztorys (.cost.json)", command=self.load_costfile, accelerator="Ctrl+O")
+        file_menu.add_separator()
+        file_menu.add_command(label="Utwórz z istniejącego...", command=self.create_from_existing)
+        file_menu.add_command(label="Historia zmian...", command=self.show_history)
         file_menu.add_separator()
         file_menu.add_command(label="Profile firmy...", command=self.open_company_profiles_dialog)
         file_menu.add_separator()
@@ -1702,6 +1854,12 @@ Wersja: 4.7
             except Exception:
                 pass
             messagebox.showinfo("Zapisano", f"Zapisano kosztorys: {path}")
+            
+            # Add to recent files
+            self._add_recent_file(path)
+            
+            # Save history snapshot
+            self.save_history_snapshot(f"Zapisano: {os.path.basename(path)}")
         except Exception as e:
             messagebox.showerror("Błąd zapisu", f"Nie udało się zapisać kosztorysu:\n{e}")
 
@@ -1740,6 +1898,12 @@ Wersja: 4.7
             pass
         self._refresh_cost_ui()
         messagebox.showinfo("Wczytano", f"Wczytano kosztorys: {path}")
+        
+        # Add to recent files
+        self._add_recent_file(path)
+        
+        # Save history snapshot
+        self.save_history_snapshot(f"Wczytano: {os.path.basename(path)}")
 
     # ==================== NEW TABS ====================
     
