@@ -1892,13 +1892,54 @@ Wersja: 4.7
             messagebox.showwarning("Brak danych", "Najpierw oblicz wymiary dachu.")
     
     def create_gutter_tab(self):
-        """Create gutter calculation tab"""
+        """Create enhanced gutter calculation tab with system selection"""
         self.gutter_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.gutter_tab, text="🌧️ Rynny")
+        
+        # Initialize gutter system manager
+        try:
+            from app.services.gutter_service import GutterSystemManager
+            self.gutter_manager = GutterSystemManager()
+            self._current_gutter_system = None
+        except Exception as e:
+            print(f"Warning: Could not initialize GutterSystemManager: {e}")
+            self.gutter_manager = None
         
         # Main container
         main = ttk.Frame(self.gutter_tab)
         main.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # System selection section
+        system_frame = ttk.LabelFrame(main, text="🔧 Wybór systemu rynnowego")
+        system_frame.pack(fill="x", pady=(0,10))
+        
+        system_inner = ttk.Frame(system_frame)
+        system_inner.pack(padx=10, pady=10, fill="x")
+        
+        ttk.Label(system_inner, text="System rynnowy:").grid(row=0, column=0, sticky="w", pady=4)
+        
+        # Get available systems
+        if self.gutter_manager:
+            system_names = self.gutter_manager.get_system_names()
+        else:
+            system_names = ["System PVC półokrągły 125mm"]
+        
+        self.gutter_system_var = tk.StringVar(value=system_names[0] if system_names else "")
+        system_combo = ttk.Combobox(
+            system_inner,
+            textvariable=self.gutter_system_var,
+            values=system_names,
+            state="readonly",
+            width=40
+        )
+        system_combo.grid(row=0, column=1, padx=8, pady=4, sticky="w")
+        system_combo.bind("<<ComboboxSelected>>", self._on_system_change)
+        
+        # Template management buttons
+        btn_frame = ttk.Frame(system_inner)
+        btn_frame.grid(row=0, column=2, padx=8, pady=4)
+        ttk.Button(btn_frame, text="💾 Zapisz szablon", command=self._save_gutter_template).pack(side="left", padx=2)
+        ttk.Button(btn_frame, text="📂 Wczytaj szablon", command=self._load_gutter_template).pack(side="left", padx=2)
         
         # Input section
         input_frame = ttk.LabelFrame(main, text="📏 Parametry orynnowania")
@@ -1922,16 +1963,339 @@ Wersja: 4.7
         
         ttk.Button(main, text="📊 Oblicz orynnowanie", command=self.calculate_gutters, style='Accent.TButton').pack(pady=10)
         
-        # Results section
-        results_frame = ttk.LabelFrame(main, text="📋 Wyniki obliczeń")
+        # Results section with Treeview for accessories
+        results_frame = ttk.LabelFrame(main, text="📋 Akcesoria i ceny")
         results_frame.pack(fill="both", expand=True)
         
-        self.gutter_results_text = tk.Text(results_frame, height=15, state="disabled", bg=COLORS['bg_white'], font=("Segoe UI", 10))
-        self.gutter_results_text.pack(fill="both", expand=True, padx=8, pady=8)
+        # Create Treeview
+        tree_container = ttk.Frame(results_frame)
+        tree_container.pack(fill="both", expand=True, padx=8, pady=8)
         
-        ttk.Button(main, text="➕ Dodaj pozycje do kosztorysu", command=self.add_gutter_items, style='Success.TButton').pack(pady=10)
+        vsb = ttk.Scrollbar(tree_container, orient="vertical")
+        
+        columns = ("name", "quantity", "unit", "price", "total")
+        self.gutter_tree = ttk.Treeview(
+            tree_container,
+            columns=columns,
+            show="headings",
+            yscrollcommand=vsb.set,
+            height=8
+        )
+        
+        vsb.config(command=self.gutter_tree.yview)
+        
+        # Column headings
+        self.gutter_tree.heading("name", text="Nazwa")
+        self.gutter_tree.heading("quantity", text="Ilość")
+        self.gutter_tree.heading("unit", text="JM")
+        self.gutter_tree.heading("price", text="Cena jedn.")
+        self.gutter_tree.heading("total", text="Wartość")
+        
+        # Column widths
+        self.gutter_tree.column("name", width=300)
+        self.gutter_tree.column("quantity", width=100, anchor="center")
+        self.gutter_tree.column("unit", width=80, anchor="center")
+        self.gutter_tree.column("price", width=120, anchor="e")
+        self.gutter_tree.column("total", width=120, anchor="e")
+        
+        self.gutter_tree.pack(side="left", fill="both", expand=True)
+        vsb.pack(side="right", fill="y")
+        
+        # Bind double-click to edit
+        self.gutter_tree.bind("<Double-Button-1>", self._edit_gutter_accessory)
+        
+        # Action buttons
+        action_frame = ttk.Frame(main)
+        action_frame.pack(fill="x", pady=10)
+        
+        ttk.Button(action_frame, text="✏️ Edytuj wybraną", command=self._edit_gutter_accessory).pack(side="left", padx=5)
+        ttk.Button(action_frame, text="➕ Dodaj pozycje do kosztorysu", command=self.add_gutter_items, style='Success.TButton').pack(side="right", padx=5)
+        
+        # Initialize with first system
+        if self.gutter_manager:
+            self._on_system_change()
+    
+    def _on_system_change(self, event=None):
+        """Handle system selection change."""
+        if not self.gutter_manager:
+            return
+        
+        system_name = self.gutter_system_var.get()
+        self._current_gutter_system = self.gutter_manager.get_system_by_name(system_name)
+        
+        # Clear and re-populate tree with new system
+        for item in self.gutter_tree.get_children():
+            self.gutter_tree.delete(item)
+        
+        if self._current_gutter_system:
+            for acc in self._current_gutter_system.accessories:
+                total = acc.quantity * acc.price_unit_net
+                self.gutter_tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        acc.name,
+                        f"{acc.quantity:.2f}",
+                        acc.unit,
+                        f"{acc.price_unit_net:.2f} zł",
+                        f"{total:.2f} zł"
+                    )
+                )
+    
+    def _edit_gutter_accessory(self, event=None):
+        """Edit selected gutter accessory."""
+        selection = self.gutter_tree.selection()
+        if not selection or not self._current_gutter_system:
+            return
+        
+        item_id = selection[0]
+        item_index = self.gutter_tree.index(item_id)
+        
+        if item_index >= len(self._current_gutter_system.accessories):
+            return
+        
+        accessory = self._current_gutter_system.accessories[item_index]
+        
+        # Import dialog
+        try:
+            from app.ui.gutter_tab import GutterAccessoryEditDialog
+            dialog = GutterAccessoryEditDialog(self.root, accessory)
+            
+            if dialog.result:
+                # Update accessory
+                accessory.quantity = dialog.result['quantity']
+                accessory.price_unit_net = dialog.result['price']
+                
+                # Update tree
+                total = accessory.quantity * accessory.price_unit_net
+                self.gutter_tree.item(
+                    item_id,
+                    values=(
+                        accessory.name,
+                        f"{accessory.quantity:.2f}",
+                        accessory.unit,
+                        f"{accessory.price_unit_net:.2f} zł",
+                        f"{total:.2f} zł"
+                    )
+                )
+        except ImportError:
+            messagebox.showerror("Błąd", "Nie można załadować dialogu edycji.")
+    
+    def _save_gutter_template(self):
+        """Save current gutter system as a user template."""
+        if not self.gutter_manager or not self._current_gutter_system:
+            messagebox.showwarning("Brak danych", "Najpierw oblicz orynnowanie.")
+            return
+        
+        try:
+            from app.ui.gutter_tab import SaveTemplateDialog
+            from app.models.gutter_models import GutterTemplate
+            
+            dialog = SaveTemplateDialog(self.root)
+            if dialog.result:
+                template = GutterTemplate(
+                    name=dialog.result,
+                    system=self._current_gutter_system
+                )
+                
+                if self.gutter_manager.save_user_template(template):
+                    messagebox.showinfo("Sukces", f"Szablon '{dialog.result}' został zapisany.")
+                else:
+                    messagebox.showerror("Błąd", "Nie udało się zapisać szablonu.")
+        except ImportError as e:
+            messagebox.showerror("Błąd", f"Nie można załadować dialogu: {e}")
+    
+    def _load_gutter_template(self):
+        """Load a user template."""
+        if not self.gutter_manager:
+            messagebox.showwarning("Niedostępne", "Manager systemów rynnowych niedostępny.")
+            return
+        
+        templates = self.gutter_manager.get_all_templates()
+        if not templates:
+            messagebox.showinfo("Brak szablonów", "Brak zapisanych szablonów użytkownika.")
+            return
+        
+        # Create selection dialog
+        template_names = [t.name for t in templates]
+        
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Wybierz szablon")
+        dialog.geometry("400x300")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="Wybierz szablon do wczytania:").pack(padx=10, pady=10)
+        
+        listbox = tk.Listbox(dialog)
+        listbox.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        for name in template_names:
+            listbox.insert("end", name)
+        
+        result = {'selected': None}
+        
+        def on_ok():
+            selection = listbox.curselection()
+            if selection:
+                result['selected'] = templates[selection[0]]
+            dialog.destroy()
+        
+        def on_cancel():
+            dialog.destroy()
+        
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(fill="x", padx=10, pady=10)
+        ttk.Button(btn_frame, text="OK", command=on_ok).pack(side="right", padx=5)
+        ttk.Button(btn_frame, text="Anuluj", command=on_cancel).pack(side="right", padx=5)
+        
+        dialog.wait_window()
+        
+        if result['selected']:
+            # Load the template
+            self._current_gutter_system = result['selected'].system
+            # Update display
+            self._refresh_gutter_tree()
+            messagebox.showinfo("Wczytano", f"Szablon '{result['selected'].name}' został wczytany.")
+    
+    def _refresh_gutter_tree(self):
+        """Refresh the gutter tree with current system data."""
+        # Clear tree
+        for item in self.gutter_tree.get_children():
+            self.gutter_tree.delete(item)
+        
+        # Repopulate
+        if self._current_gutter_system:
+            for acc in self._current_gutter_system.accessories:
+                total = acc.quantity * acc.price_unit_net
+                self.gutter_tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        acc.name,
+                        f"{acc.quantity:.2f}",
+                        acc.unit,
+                        f"{acc.price_unit_net:.2f} zł",
+                        f"{total:.2f} zł"
+                    )
+                )
     
     def calculate_gutters(self):
+        """Calculate guttering requirements with selected system"""
+        try:
+            okap = self.gutter_okap_length.get()
+            height = self.gutter_roof_height.get()
+            num_dp = self.gutter_num_downpipes.get() if self.gutter_num_downpipes.get() > 0 else None
+            
+            if self.gutter_manager and self._current_gutter_system:
+                # Use the manager to calculate quantities
+                self._current_gutter_system = self.gutter_manager.calculate_accessories(
+                    self._current_gutter_system,
+                    okap,
+                    height,
+                    num_dp
+                )
+                
+                # Update the tree
+                self._refresh_gutter_tree()
+                
+            elif CALC_MODULES_AVAILABLE:
+                # Fallback to old calculation method
+                results = calculate_guttering(okap, height, num_dp)
+                
+                # Store for backward compatibility
+                self._last_gutter_calc = results
+                
+                # Update text output (old style)
+                output = []
+                output.append("🌧️ KALKULATOR ORYNNOWANIA")
+                output.append("=" * 40)
+                output.append("")
+                output.append(f"📏 Długość rynny: {results['total_gutter_length_m']:.2f} m")
+                output.append(f"📏 Długość rur spustowych: {results['total_downpipe_length_m']:.2f} m")
+                output.append(f"🔢 Liczba rur spustowych: {results['num_downpipes']}")
+                output.append("")
+                output.append("📦 Akcesoria:")
+                output.append(f"   • Haki rynnowe: {results['num_gutter_hooks']} szt.")
+                output.append(f"   • Łączniki rynien: {results['num_gutter_connectors']} szt.")
+                output.append(f"   • Wyloty do rur: {results['num_downpipe_outlets']} szt.")
+                output.append(f"   • Obejmy rurowe: {results['num_downpipe_clamps']} szt.")
+                output.append(f"   • Kolanka: {results['num_downpipe_elbows']} szt.")
+                output.append(f"   • Zaślepki: {results['num_end_caps']} szt.")
+                
+                # Show in message
+                messagebox.showinfo("Wyniki", "\n".join(output))
+            else:
+                # Basic fallback
+                num_downpipes = num_dp if num_dp else max(1, math.ceil(okap / 10.0))
+                messagebox.showinfo(
+                    "Wyniki",
+                    f"Długość rynny: {okap:.2f} m\n"
+                    f"Długość rur: {num_downpipes * height:.2f} m\n"
+                    f"Liczba rur spustowych: {num_downpipes}"
+                )
+            
+        except Exception as e:
+            messagebox.showerror("Błąd obliczeń", f"Wystąpił błąd: {e}")
+    
+    def add_gutter_items(self):
+        """Add gutter items to cost estimate with review dialog"""
+        if not self._current_gutter_system and not hasattr(self, '_last_gutter_calc'):
+            messagebox.showwarning("Brak danych", "Najpierw oblicz orynnowanie.")
+            return
+        
+        if self._current_gutter_system and self.gutter_manager:
+            # New system - show review dialog
+            try:
+                from app.ui.gutter_tab import GutterAccessoriesDialog
+                
+                # Filter accessories with quantity > 0
+                accessories_to_show = [acc for acc in self._current_gutter_system.accessories if acc.quantity > 0]
+                
+                if not accessories_to_show:
+                    messagebox.showinfo("Brak danych", "Najpierw oblicz orynnowanie aby uzyskać ilości.")
+                    return
+                
+                dialog = GutterAccessoriesDialog(self.root, accessories_to_show)
+                
+                if dialog.result:
+                    # Add selected items to cost estimate
+                    for acc in dialog.result:
+                        item = {
+                            "name": acc.name,
+                            "quantity": acc.quantity,
+                            "unit": acc.unit,
+                            "price_unit_net": acc.price_unit_net,
+                            "vat_rate": acc.vat_rate,
+                            "category": acc.category,
+                            "note": ""
+                        }
+                        self.cost_items.append(item)
+                    
+                    self._refresh_cost_ui()
+                    messagebox.showinfo("Dodano", f"Dodano {len(dialog.result)} pozycji orynnowania do kosztorysu.")
+                    self.notebook.select(self.cost_tab)
+            except ImportError as e:
+                messagebox.showerror("Błąd", f"Nie można załadować dialogu: {e}")
+        elif hasattr(self, '_last_gutter_calc'):
+            # Old system - use legacy method
+            r = self._last_gutter_calc
+            items = [
+                {"name": "Rynna", "quantity": r['total_gutter_length_m'], "unit": "mb", "price_unit_net": 25.0, "vat_rate": 8, "category": "material"},
+                {"name": "Rura spustowa", "quantity": r['total_downpipe_length_m'], "unit": "mb", "price_unit_net": 28.0, "vat_rate": 8, "category": "material"},
+                {"name": "Haki rynnowe", "quantity": r['num_gutter_hooks'], "unit": "szt.", "price_unit_net": 8.0, "vat_rate": 8, "category": "material"},
+                {"name": "Łączniki rynien", "quantity": r['num_gutter_connectors'], "unit": "szt.", "price_unit_net": 12.0, "vat_rate": 8, "category": "material"},
+                {"name": "Montaż orynnowania", "quantity": r['total_gutter_length_m'], "unit": "mb", "price_unit_net": 15.0, "vat_rate": 8, "category": "service"},
+            ]
+            
+            for item in items:
+                item["note"] = ""
+                self.cost_items.append(item)
+            
+            self._refresh_cost_ui()
+            messagebox.showinfo("Dodano", f"Dodano {len(items)} pozycji orynnowania do kosztorysu.")
+            self.notebook.select(self.cost_tab)
+    
         """Calculate guttering requirements"""
         try:
             okap = self.gutter_okap_length.get()
@@ -1981,28 +2345,6 @@ Wersja: 4.7
         except Exception as e:
             messagebox.showerror("Błąd obliczeń", f"Wystąpił błąd: {e}")
     
-    def add_gutter_items(self):
-        """Add gutter items to cost estimate"""
-        if not hasattr(self, '_last_gutter_calc') or not self._last_gutter_calc:
-            messagebox.showwarning("Brak danych", "Najpierw oblicz orynnowanie.")
-            return
-        
-        r = self._last_gutter_calc
-        items = [
-            {"name": "Rynna", "quantity": r['total_gutter_length_m'], "unit": "mb", "price_unit_net": 25.0, "vat_rate": 8, "category": "material"},
-            {"name": "Rura spustowa", "quantity": r['total_downpipe_length_m'], "unit": "mb", "price_unit_net": 28.0, "vat_rate": 8, "category": "material"},
-            {"name": "Haki rynnowe", "quantity": r['num_gutter_hooks'], "unit": "szt.", "price_unit_net": 8.0, "vat_rate": 8, "category": "material"},
-            {"name": "Łączniki rynien", "quantity": r['num_gutter_connectors'], "unit": "szt.", "price_unit_net": 12.0, "vat_rate": 8, "category": "material"},
-            {"name": "Montaż orynnowania", "quantity": r['total_gutter_length_m'], "unit": "mb", "price_unit_net": 15.0, "vat_rate": 8, "category": "service"},
-        ]
-        
-        for item in items:
-            item["note"] = ""
-            self.cost_items.append(item)
-        
-        self._refresh_cost_ui()
-        messagebox.showinfo("Dodano", f"Dodano {len(items)} pozycji orynnowania do kosztorysu.")
-        self.notebook.select(self.cost_tab)
     
     def create_chimney_tab(self):
         """Create chimney calculation tab"""
