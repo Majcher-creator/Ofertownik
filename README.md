@@ -19,7 +19,12 @@ Kompleksowa aplikacja desktopowa do tworzenia profesjonalnych kosztorysów ofert
 
 #### 📐 Kalkulatory Techniczne
 - **Pomiar Dachu** - Obliczenia dla dachów jednospadowych, dwuspadowych i kopertowych
-- **System Rynnowy** - Kalkulacja rynien, rur spustowych i akcesoriów
+- **System Rynnowy** - Zaawansowana kalkulacja rynien z wieloma systemami (PVC, stal, miedź, tytan-cynk)
+  - Wybór z 4 predefiniowanych systemów rynnowych
+  - Automatyczne przeliczanie akcesoriów na podstawie parametrów dachu
+  - Edycja ilości i cen każdego akcesorium przed dodaniem do kosztorysu
+  - Zapisywanie i wczytywanie własnych szablonów konfiguracji
+  - Dialog przeglądu pozycji z możliwością wyboru co dodać
 - **Obróbki Kominowe** - Obliczenia obróbek kominowych i czap
 - **Obróbki Blacharskie** - Wiatrownice, okapnice, pasy nadrynnowe
 - **Konstrukcja** - Obliczenia ilości drewna konstrukcyjnego
@@ -114,15 +119,18 @@ Ofertownik/
 │   ├── models/                    # Modele danych
 │   │   ├── client.py              # Model klienta
 │   │   ├── cost_item.py           # Model pozycji kosztorysowej
-│   │   └── material.py            # Model materiału
+│   │   ├── material.py            # Model materiału
+│   │   └── gutter_models.py       # Modele systemów rynnowych (NEW)
 │   ├── services/                  # Warstwa usług
 │   │   ├── database.py            # Obsługa bazy danych SQLite
 │   │   ├── file_manager.py        # Zarządzanie plikami JSON
 │   │   ├── pdf_export.py          # Eksport do PDF
-│   │   └── csv_export.py          # Eksport do CSV
+│   │   ├── csv_export.py          # Eksport do CSV
+│   │   └── gutter_service.py      # Zarządzanie systemami rynnowymi (NEW)
 │   ├── ui/                        # Komponenty interfejsu użytkownika
 │   │   ├── styles.py              # Style i motywy (light/dark mode)
 │   │   ├── dialogs.py             # Okna dialogowe
+│   │   ├── gutter_tab.py          # Dialogi dla zakładki rynien (NEW)
 │   │   └── tabs/                  # Zakładki aplikacji
 │   │       ├── cost_tab.py        # Zakładka kosztorysu
 │   │       ├── measurement_tab.py # Zakładka pomiarów
@@ -135,6 +143,8 @@ Ofertownik/
 ├── tests/                         # Testy jednostkowe
 │   ├── test_roof_calculations.py
 │   ├── test_gutter_calculations.py
+│   ├── test_gutter_models.py      # Testy modeli rynnowych (NEW)
+│   ├── test_gutter_integration.py # Testy integracyjne (NEW)
 │   ├── test_cost_calculations.py
 │   └── test_validation.py
 ├── main_app044.py                 # Punkt wejścia aplikacji
@@ -143,6 +153,7 @@ Ofertownik/
 ├── chimney_calculations.py        # Obliczenia obróbek kominowych
 ├── flashing_calculations.py       # Obliczenia obróbek blacharskich
 ├── timber_calculations.py         # Obliczenia drewna
+├── gutter_systems.json            # Konfiguracja systemów rynnowych (NEW)
 ├── felt_calculations.py           # Obliczenia papy
 ├── cost_calculations.py           # Logika kosztorysowa
 ├── measurement_tab.py             # Moduł pomiaru figur
@@ -154,6 +165,39 @@ Ofertownik/
 │       └── build.yml              # CI/CD workflow
 └── README.md                      # Ta dokumentacja
 ```
+
+### 🌧️ System Rynnowy - Nowa funkcjonalność (v4.8+)
+
+#### Przegląd
+Rozbudowana zakładka "Rynny" oferuje kompleksowe zarządzanie systemami rynnowymi z obsługą różnych typów i producentów.
+
+#### Dostępne systemy
+- **System PVC półokrągły 125mm** - Popularny system z tworzywa
+- **System kwadratowy stalowy** - Stalowy system powlekany
+- **System miedziany premium** - Ekskluzywny system z miedzi
+- **System tytan-cynk** - Trwały i elegancki system
+
+#### Kluczowe funkcje
+1. **Wybór systemu** - Combobox z 4 predefiniowanymi systemami
+2. **Automatyczne obliczenia** - Akcesoria przeliczane na podstawie parametrów dachu
+3. **Edycja pozycji** - Możliwość zmiany ilości i ceny każdego akcesorium
+4. **Przegląd przed dodaniem** - Dialog z tabelą pozycji do zatwierdzenia
+5. **Szablony użytkownika** - Zapisywanie i wczytywanie własnych konfiguracji
+6. **Kompatybilność wsteczna** - Stare kosztorysy działają bez zmian
+
+#### Akcesoria wliczone w system
+- Rynny (metry bieżące)
+- Rury spustowe (metry bieżące)
+- Haki rynnowe (automatycznie co 0.5m)
+- Łączniki rynien (co 3m)
+- Wyloty do rur (po jednym na rurę)
+- Obejmy rurowe (co 2m)
+- Kolanka (2 na rurę spustową)
+- Zaślepki rynien
+- Montaż systemu rynnowego
+
+#### Szczegółowa dokumentacja
+Zobacz [GUTTER_SYSTEM_DOCUMENTATION.md](GUTTER_SYSTEM_DOCUMENTATION.md) dla pełnej dokumentacji technicznej, przykładów użycia i API.
 
 ### 🎨 Interfejs użytkownika
 
@@ -181,7 +225,7 @@ Ofertownik/
 - **Bezpieczne pliki** - Sanityzacja nazw plików przed zapisem
 
 #### Jakość kodu
-- **Testy jednostkowe** - 49+ testów pokrywających kluczowe funkcjonalności
+- **Testy jednostkowe** - 70+ testów pokrywających kluczowe funkcjonalności (w tym 37 testów systemów rynnowych)
 - **Type hints** - Pełne adnotacje typów dla lepszej dokumentacji i wykrywania błędów
 - **PEP 8** - Kod zgodny ze standardami Pythona
 - **CI/CD** - Automatyczne testy i budowanie na GitHub Actions
