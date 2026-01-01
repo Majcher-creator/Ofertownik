@@ -35,6 +35,10 @@ class FlashingManager:
             self._create_default_config()
         
         try:
+            # Check if file is empty
+            if os.path.getsize(self.config_path) == 0:
+                self._create_default_config()
+            
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
