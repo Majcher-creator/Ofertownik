@@ -65,7 +65,7 @@ except ImportError:
 # Fallback implementations provided below for backward compatibility
 try:
     from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text, safe_filename
-    from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
+    from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog, CompanyEditDialog
     from app.services.pdf_preview import PDFPreview
     from app.models.history import CostEstimateHistory
     from app.ui.dialogs.history_dialog import HistoryDialog
@@ -360,6 +360,34 @@ if not APP_MODULES_AVAILABLE:
             return True
         def apply(self):
             self.result = {"name": self.e_name.get().strip(), "unit": self.e_unit.get().strip(), "price_unit_net": float(self.e_price.get().replace(",",".") or 0.0), "vat_rate": int(self.vat_cb.get() or 23), "category": self.cat_cb.get() or "material"}
+
+    class CompanyEditDialog(simpledialog.Dialog):
+        def __init__(self,parent,title,profile=None):
+            self.profile = profile or {}
+            super().__init__(parent,title)
+        def body(self,master):
+            ttk.Label(master, text="Nazwa firmy:").grid(row=0,column=0,sticky="w",pady=2)
+            self.e_company_name = ttk.Entry(master, width=60); self.e_company_name.grid(row=0,column=1,pady=2)
+            ttk.Label(master, text="Adres:").grid(row=1,column=0,sticky="w",pady=2)
+            self.e_company_address = ttk.Entry(master, width=60); self.e_company_address.grid(row=1,column=1,pady=2)
+            ttk.Label(master, text="NIP:").grid(row=2,column=0,sticky="w",pady=2)
+            self.e_company_nip = ttk.Entry(master, width=60); self.e_company_nip.grid(row=2,column=1,pady=2)
+            ttk.Label(master, text="Telefon:").grid(row=3,column=0,sticky="w",pady=2)
+            self.e_company_phone = ttk.Entry(master, width=60); self.e_company_phone.grid(row=3,column=1,pady=2)
+            ttk.Label(master, text="E-mail:").grid(row=4,column=0,sticky="w",pady=2)
+            self.e_company_email = ttk.Entry(master, width=60); self.e_company_email.grid(row=4,column=1,pady=2)
+            ttk.Label(master, text="Numer konta:").grid(row=5,column=0,sticky="w",pady=2)
+            self.e_company_account = ttk.Entry(master, width=60); self.e_company_account.grid(row=5,column=1,pady=2)
+            if self.profile:
+                self.e_company_name.insert(0, self.profile.get("company_name",""))
+                self.e_company_address.insert(0, self.profile.get("company_address",""))
+                self.e_company_nip.insert(0, self.profile.get("company_nip",""))
+                self.e_company_phone.insert(0, self.profile.get("company_phone",""))
+                self.e_company_email.insert(0, self.profile.get("company_email",""))
+                self.e_company_account.insert(0, self.profile.get("company_account",""))
+            return self.e_company_name
+        def apply(self):
+            self.result = {"company_name": self.e_company_name.get().strip(), "company_address": self.e_company_address.get().strip(), "company_nip": self.e_company_nip.get().strip(), "company_phone": self.e_company_phone.get().strip(), "company_email": self.e_company_email.get().strip(), "company_account": self.e_company_account.get().strip(), "logo": self.profile.get("logo","")}
 
 # ---------------- Main App ----------------
 class RoofCalculatorApp:

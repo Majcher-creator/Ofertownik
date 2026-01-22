@@ -243,3 +243,70 @@ class MaterialEditDialog(simpledialog.Dialog):
             "vat_rate": int(self.vat_cb.get() or 23),
             "category": self.cat_cb.get() or "material"
         }
+
+
+class CompanyEditDialog(simpledialog.Dialog):
+    """
+    Dialog for editing company information.
+    """
+    
+    def __init__(self, parent, title: str, profile: Optional[Dict[str, Any]] = None):
+        """
+        Initialize the company edit dialog.
+        
+        Args:
+            parent: Parent window
+            title: Dialog title
+            profile: Existing profile data to edit (None for new profile)
+        """
+        self.profile = profile or {}
+        super().__init__(parent, title)
+    
+    def body(self, master):
+        """Create dialog body with input fields."""
+        ttk.Label(master, text="Nazwa firmy:").grid(row=0, column=0, sticky="w", pady=2)
+        self.e_company_name = ttk.Entry(master, width=60)
+        self.e_company_name.grid(row=0, column=1, pady=2)
+        
+        ttk.Label(master, text="Adres:").grid(row=1, column=0, sticky="w", pady=2)
+        self.e_company_address = ttk.Entry(master, width=60)
+        self.e_company_address.grid(row=1, column=1, pady=2)
+        
+        ttk.Label(master, text="NIP:").grid(row=2, column=0, sticky="w", pady=2)
+        self.e_company_nip = ttk.Entry(master, width=60)
+        self.e_company_nip.grid(row=2, column=1, pady=2)
+        
+        ttk.Label(master, text="Telefon:").grid(row=3, column=0, sticky="w", pady=2)
+        self.e_company_phone = ttk.Entry(master, width=60)
+        self.e_company_phone.grid(row=3, column=1, pady=2)
+        
+        ttk.Label(master, text="E-mail:").grid(row=4, column=0, sticky="w", pady=2)
+        self.e_company_email = ttk.Entry(master, width=60)
+        self.e_company_email.grid(row=4, column=1, pady=2)
+        
+        ttk.Label(master, text="Numer konta:").grid(row=5, column=0, sticky="w", pady=2)
+        self.e_company_account = ttk.Entry(master, width=60)
+        self.e_company_account.grid(row=5, column=1, pady=2)
+        
+        # Fill in existing data if editing
+        if self.profile:
+            self.e_company_name.insert(0, self.profile.get("company_name", ""))
+            self.e_company_address.insert(0, self.profile.get("company_address", ""))
+            self.e_company_nip.insert(0, self.profile.get("company_nip", ""))
+            self.e_company_phone.insert(0, self.profile.get("company_phone", ""))
+            self.e_company_email.insert(0, self.profile.get("company_email", ""))
+            self.e_company_account.insert(0, self.profile.get("company_account", ""))
+        
+        return self.e_company_name  # Initial focus
+    
+    def apply(self):
+        """Called when OK is pressed - save the result."""
+        self.result = {
+            "company_name": self.e_company_name.get().strip(),
+            "company_address": self.e_company_address.get().strip(),
+            "company_nip": self.e_company_nip.get().strip(),
+            "company_phone": self.e_company_phone.get().strip(),
+            "company_email": self.e_company_email.get().strip(),
+            "company_account": self.e_company_account.get().strip(),
+            "logo": self.profile.get("logo", "")  # Preserve existing logo
+        }
