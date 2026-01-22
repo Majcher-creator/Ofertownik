@@ -65,7 +65,7 @@ except ImportError:
 # Fallback implementations provided below for backward compatibility
 try:
     from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text, safe_filename
-    from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
+    from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog, CompanyEditDialog, CompanyProfilesDialog
     from app.services.pdf_preview import PDFPreview
     from app.models.history import CostEstimateHistory
     from app.ui.dialogs.history_dialog import HistoryDialog
@@ -360,6 +360,103 @@ if not APP_MODULES_AVAILABLE:
             return True
         def apply(self):
             self.result = {"name": self.e_name.get().strip(), "unit": self.e_unit.get().strip(), "price_unit_net": float(self.e_price.get().replace(",",".") or 0.0), "vat_rate": int(self.vat_cb.get() or 23), "category": self.cat_cb.get() or "material"}
+
+    class CompanyEditDialog(simpledialog.Dialog):
+        def __init__(self,parent,title,profile=None):
+            self.profile = profile or {}
+            super().__init__(parent,title)
+        def body(self,master):
+            ttk.Label(master, text="Nazwa firmy:").grid(row=0,column=0,sticky="w",pady=2)
+            self.e_company_name = ttk.Entry(master, width=60); self.e_company_name.grid(row=0,column=1,pady=2)
+            ttk.Label(master, text="Adres:").grid(row=1,column=0,sticky="w",pady=2)
+            self.e_company_address = ttk.Entry(master, width=60); self.e_company_address.grid(row=1,column=1,pady=2)
+            ttk.Label(master, text="NIP:").grid(row=2,column=0,sticky="w",pady=2)
+            self.e_company_nip = ttk.Entry(master, width=60); self.e_company_nip.grid(row=2,column=1,pady=2)
+            ttk.Label(master, text="Telefon:").grid(row=3,column=0,sticky="w",pady=2)
+            self.e_company_phone = ttk.Entry(master, width=60); self.e_company_phone.grid(row=3,column=1,pady=2)
+            ttk.Label(master, text="E-mail:").grid(row=4,column=0,sticky="w",pady=2)
+            self.e_company_email = ttk.Entry(master, width=60); self.e_company_email.grid(row=4,column=1,pady=2)
+            ttk.Label(master, text="Numer konta:").grid(row=5,column=0,sticky="w",pady=2)
+            self.e_company_account = ttk.Entry(master, width=60); self.e_company_account.grid(row=5,column=1,pady=2)
+            if self.profile:
+                self.e_company_name.insert(0, self.profile.get("company_name",""))
+                self.e_company_address.insert(0, self.profile.get("company_address",""))
+                self.e_company_nip.insert(0, self.profile.get("company_nip",""))
+                self.e_company_phone.insert(0, self.profile.get("company_phone",""))
+                self.e_company_email.insert(0, self.profile.get("company_email",""))
+                self.e_company_account.insert(0, self.profile.get("company_account",""))
+            return self.e_company_name
+        def apply(self):
+            self.result = {"company_name": self.e_company_name.get().strip(), "company_address": self.e_company_address.get().strip(), "company_nip": self.e_company_nip.get().strip(), "company_phone": self.e_company_phone.get().strip(), "company_email": self.e_company_email.get().strip(), "company_account": self.e_company_account.get().strip(), "logo": self.profile.get("logo","")}
+
+    class CompanyProfilesDialog(tk.Toplevel):
+        def __init__(self,parent,profiles_path):
+            super().__init__(parent)
+            self.title("Profile firmy"); self.geometry("800x500"); self.transient(parent); self.grab_set()
+            self.profiles_path = profiles_path; self.profiles = []; self.selected_profile = None
+            self._load_profiles(); self._create_widgets()
+            self.update_idletasks()
+            x = (self.winfo_screenwidth() // 2) - (self.winfo_width() // 2); y = (self.winfo_screenheight() // 2) - (self.winfo_height() // 2)
+            self.geometry(f"+{x}+{y}")
+        def _load_profiles(self):
+            if os.path.exists(self.profiles_path):
+                try:
+                    with open(self.profiles_path,'r',encoding='utf-8') as f: self.profiles = json.load(f)
+                except Exception: self.profiles = []
+            else: self.profiles = []
+        def _save_profiles(self):
+            try:
+                os.makedirs(os.path.dirname(self.profiles_path), exist_ok=True)
+                with open(self.profiles_path,'w',encoding='utf-8') as f: json.dump(self.profiles, f, indent=2, ensure_ascii=False)
+            except Exception as e: messagebox.showerror("Błąd", f"Nie można zapisać profili: {e}")
+        def _create_widgets(self):
+            main_frame = ttk.Frame(self, padding=10); main_frame.pack(fill='both', expand=True)
+            ttk.Label(main_frame, text="Zarządzanie profilami firmy", font=('Segoe UI', 12, 'bold')).pack(pady=(0, 10))
+            list_frame = ttk.LabelFrame(main_frame, text="Dostępne profile", padding=10); list_frame.pack(fill='both', expand=True, pady=(0, 10))
+            scrollbar = ttk.Scrollbar(list_frame); scrollbar.pack(side='right', fill='y')
+            self.profiles_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, font=('Segoe UI', 10), height=15)
+            self.profiles_listbox.pack(side='left', fill='both', expand=True); scrollbar.config(command=self.profiles_listbox.yview)
+            self.profiles_listbox.bind('<Double-Button-1>', lambda e: self._load_selected()); self._refresh_list()
+            button_frame = ttk.Frame(main_frame); button_frame.pack(fill='x')
+            ttk.Button(button_frame, text="Nowy profil", command=self._add_profile).pack(side='left', padx=2)
+            ttk.Button(button_frame, text="Edytuj", command=self._edit_profile).pack(side='left', padx=2)
+            ttk.Button(button_frame, text="Usuń", command=self._delete_profile).pack(side='left', padx=2)
+            ttk.Button(button_frame, text="Wczytaj wybrany", command=self._load_selected).pack(side='left', padx=10)
+            ttk.Button(button_frame, text="Anuluj", command=self.destroy).pack(side='right', padx=2)
+        def _refresh_list(self):
+            self.profiles_listbox.delete(0, tk.END)
+            for profile in self.profiles:
+                name = profile.get('profile_name', 'Bez nazwy'); company = profile.get('company_name', '')
+                display = f"{name} - {company}" if company else name
+                self.profiles_listbox.insert(tk.END, display)
+        def _add_profile(self):
+            name = simpledialog.askstring("Nowy profil", "Nazwa profilu:", parent=self)
+            if not name: return
+            new_profile = {"profile_name": name, "company_name": "", "company_address": "", "company_nip": "", "company_phone": "", "company_email": "", "company_account": "", "logo": ""}
+            dlg = CompanyEditDialog(self, f"Nowy profil: {name}", new_profile)
+            if getattr(dlg, 'result', None):
+                new_profile.update(dlg.result); new_profile['profile_name'] = name
+                self.profiles.append(new_profile); self._save_profiles(); self._refresh_list()
+                self.profiles_listbox.selection_clear(0, tk.END); self.profiles_listbox.selection_set(tk.END)
+        def _edit_profile(self):
+            selection = self.profiles_listbox.curselection()
+            if not selection: messagebox.showwarning("Uwaga", "Wybierz profil do edycji"); return
+            idx = selection[0]; profile = self.profiles[idx]
+            dlg = CompanyEditDialog(self, f"Edytuj profil: {profile.get('profile_name', '')}", profile.copy())
+            if getattr(dlg, 'result', None):
+                profile_name = profile.get('profile_name', '')
+                self.profiles[idx].update(dlg.result); self.profiles[idx]['profile_name'] = profile_name
+                self._save_profiles(); self._refresh_list(); self.profiles_listbox.selection_set(idx)
+        def _delete_profile(self):
+            selection = self.profiles_listbox.curselection()
+            if not selection: messagebox.showwarning("Uwaga", "Wybierz profil do usunięcia"); return
+            idx = selection[0]; profile = self.profiles[idx]; name = profile.get('profile_name', 'ten profil')
+            if messagebox.askyesno("Potwierdź", f"Czy na pewno usunąć profil '{name}'?"):
+                del self.profiles[idx]; self._save_profiles(); self._refresh_list()
+        def _load_selected(self):
+            selection = self.profiles_listbox.curselection()
+            if not selection: messagebox.showwarning("Uwaga", "Wybierz profil do wczytania"); return
+            idx = selection[0]; self.selected_profile = self.profiles[idx].copy(); self.destroy()
 
 # ---------------- Main App ----------------
 class RoofCalculatorApp:
