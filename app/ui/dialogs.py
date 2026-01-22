@@ -410,8 +410,7 @@ class CompanyProfilesDialog(tk.Toplevel):
         ttk.Button(button_frame, text="Usuń", 
                   command=self._delete_profile).pack(side='left', padx=2)
         ttk.Button(button_frame, text="Wczytaj wybrany", 
-                  command=self._load_selected, 
-                  style='Accent.TButton').pack(side='left', padx=10)
+                  command=self._load_selected).pack(side='left', padx=10)
         ttk.Button(button_frame, text="Anuluj", 
                   command=self.destroy).pack(side='right', padx=2)
     
