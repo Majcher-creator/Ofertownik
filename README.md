@@ -47,12 +47,19 @@ Kompleksowa aplikacja desktopowa do tworzenia profesjonalnych kosztorysów ofert
 - **Word** - Eksport do edytowalnych dokumentów .docx (wkrótce)
 - **Excel Import** - Import bazy materiałów z plików Excel/CSV
 
+#### 📧 Wysyłka Email
+- **Wysyłanie kosztorysu** - Wyślij PDF bezpośrednio na email klienta
+- **Konfiguracja SMTP** - Obsługa Gmail, Outlook, Office 365, Yahoo i własnych serwerów
+- **Bezpieczne hasła** - Hasła przechowywane w systemowym keyring
+- **Szablony wiadomości** - Automatyczne wypełnianie treści email
+
 ### 📄 Eksport
 
 - **PDF** - Profesjonalny kosztorys ofertowy z logo firmy
 - **Podgląd PDF** - Możliwość podglądu wygenerowanego PDF w domyślnej przeglądarce przed zapisem
 - **CSV** - Eksport danych do arkusza kalkulacyjnego
 - **JSON** - Zapisywanie i wczytywanie kosztorysów
+- **Email** - Wysyłanie kosztorysu bezpośrednio na email klienta
 
 ### 🚀 Instalacja i Uruchomienie
 
