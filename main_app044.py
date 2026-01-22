@@ -66,17 +66,21 @@ except ImportError:
 try:
     from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text, safe_filename
     from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog, CompanyEditDialog, CompanyProfilesDialog
-    from app.services.pdf_preview import PDFPreview
     from app.models.history import CostEstimateHistory
     from app.ui.dialogs.history_dialog import HistoryDialog
     from app.ui.dialogs.create_from_existing_dialog import CreateFromExistingDialog
     APP_MODULES_AVAILABLE = True
 except ImportError:
     APP_MODULES_AVAILABLE = False
-    PDFPreview = None
     CostEstimateHistory = None
     HistoryDialog = None
     CreateFromExistingDialog = None
+
+# PDF preview service should be available even if optional UI modules fail to import.
+try:
+    from app.services.pdf_preview import PDFPreview
+except ImportError:
+    PDFPreview = None
 
 # Import email service
 try:
