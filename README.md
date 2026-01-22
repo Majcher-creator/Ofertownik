@@ -16,6 +16,11 @@ Kompleksowa aplikacja desktopowa do tworzenia profesjonalnych kosztorysów ofert
 - **Obliczenia automatyczne** - Automatyczne obliczanie wartości netto, VAT i brutto
 - **Transport** - Konfigurowalne dodawanie kosztów transportu
 - **Podsumowania** - Grupowanie po stawkach VAT i kategoriach
+- **Historia zmian** - Wersjonowanie kosztorysów z automatycznym zapisem przy każdym zapisie
+- **Porównywanie wersji** - Szczegółowe porównanie dwóch wersji z wizualizacją różnic
+- **Przywracanie wersji** - Możliwość przywrócenia dowolnej wcześniejszej wersji
+- **Tworzenie z istniejącego** - Kopiowanie kosztorysów z opcjami wyboru danych
+- **Szablony** - Predefiniowane szablony dla typowych prac dekarskich
 
 #### 📐 Kalkulatory Techniczne
 - **Pomiar Dachu** - Obliczenia dla dachów jednospadowych, dwuspadowych i kopertowych
@@ -42,12 +47,19 @@ Kompleksowa aplikacja desktopowa do tworzenia profesjonalnych kosztorysów ofert
 - **Word** - Eksport do edytowalnych dokumentów .docx (wkrótce)
 - **Excel Import** - Import bazy materiałów z plików Excel/CSV
 
+#### 📧 Wysyłka Email
+- **Wysyłanie kosztorysu** - Wyślij PDF bezpośrednio na email klienta
+- **Konfiguracja SMTP** - Obsługa Gmail, Outlook, Office 365, Yahoo i własnych serwerów
+- **Bezpieczne hasła** - Hasła przechowywane w systemowym keyring
+- **Szablony wiadomości** - Automatyczne wypełnianie treści email
+
 ### 📄 Eksport
 
 - **PDF** - Profesjonalny kosztorys ofertowy z logo firmy
 - **Podgląd PDF** - Możliwość podglądu wygenerowanego PDF w domyślnej przeglądarce przed zapisem
 - **CSV** - Eksport danych do arkusza kalkulacyjnego
 - **JSON** - Zapisywanie i wczytywanie kosztorysów
+- **Email** - Wysyłanie kosztorysu bezpośrednio na email klienta
 
 ### 🚀 Instalacja i Uruchomienie
 
@@ -198,6 +210,42 @@ Rozbudowana zakładka "Rynny" oferuje kompleksowe zarządzanie systemami rynnowy
 
 #### Szczegółowa dokumentacja
 Zobacz [GUTTER_SYSTEM_DOCUMENTATION.md](GUTTER_SYSTEM_DOCUMENTATION.md) dla pełnej dokumentacji technicznej, przykładów użycia i API.
+
+### 📜 Historia zmian i szablony
+
+#### Historia wersji kosztorysu
+- **Automatyczne wersjonowanie** - Każdy zapis tworzy snapshot w historii
+- **Do 50 wersji** - Przechowywanie ostatnich 50 wersji dla każdego kosztorysu
+- **Szczegółowe metadane** - Data, opis, liczba pozycji, wartość brutto
+- **Wykrywanie zmian** - Checksum MD5 pozycji do szybkiej identyfikacji zmian
+
+#### Porównywanie wersji
+- **Wizualne porównanie** - Szczegółowe porównanie dwóch dowolnych wersji
+- **Kategoryzacja zmian** - Podział na dodane, usunięte i zmienione pozycje
+- **Analiza różnic** - Dokładna informacja o zmianach w ilościach, cenach i VAT
+- **Przejrzysta prezentacja** - Zakładki dla różnych typów zmian
+
+#### Przywracanie wersji
+- **Cofanie zmian** - Możliwość przywrócenia dowolnej wcześniejszej wersji
+- **Bezpieczeństwo** - Potwierdzenie przed przywróceniem
+- **Pełne przywracanie** - Odtworzenie pozycji, klienta i ustawień
+
+#### Tworzenie z istniejącego
+- **Lista ostatnich** - Szybki dostęp do 10 ostatnio używanych kosztorysów
+- **Przeglądanie plików** - Wybór dowolnego pliku .cost.json z podglądem
+- **Opcje kopiowania**:
+  - Kopiuj pozycje kosztorysowe
+  - Kopiuj dane klienta
+  - Kopiuj ustawienia (transport, VAT)
+  - Wyzeruj ilości (pozostaw tylko nazwy i ceny)
+
+#### Predefiniowane szablony
+- **Dach dwuspadowy - standard** - Kompletny zestaw materiałów i robocizny
+- **Dach kopertowy - standard** - Pakiet dla dachu kopertowego
+- **Remont pokrycia** - Szablon do napraw i remontów
+- **System rynnowy kompletny** - Pełna instalacja orynnowania PVC
+- **Obróbki blacharskie** - Standardowe obróbki (okapniki, wiatrownice, pasy)
+- **Pusty kosztorys** - Start od zera
 
 ### 🎨 Interfejs użytkownika
 
