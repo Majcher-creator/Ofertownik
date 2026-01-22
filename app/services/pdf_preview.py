@@ -40,7 +40,7 @@ class PDFPreview:
             
             # Wywołanie generatora PDF z ścieżką do pliku tymczasowego
             generator_result = pdf_content_generator(temp_path, *args, **kwargs)
-            if generator_result is False or not os.path.exists(temp_path):
+            if (generator_result is not None and not generator_result) or not os.path.exists(temp_path):
                 try:
                     os.unlink(temp_path)
                 except Exception:
