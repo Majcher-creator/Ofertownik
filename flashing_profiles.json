@@ -1,0 +1,95 @@
+{
+  "predefined_profiles": [
+    {
+      "id": "okap-standard",
+      "name": "Obróbka okapowa standard",
+      "description": "Standardowa obróbka okapu 250mm",
+      "development_width": 250.0,
+      "material_type": "stal",
+      "price_per_meter": 35.0,
+      "unit_conversions": {
+        "m2_per_meter": 0.25,
+        "kg_per_meter": 1.2
+      },
+      "is_custom": false
+    },
+    {
+      "id": "kalenica",
+      "name": "Kalenica prosta",
+      "description": "Obróbka kalenicy standard 500mm",
+      "development_width": 500.0,
+      "material_type": "stal",
+      "price_per_meter": 45.0,
+      "unit_conversions": {
+        "m2_per_meter": 0.5,
+        "kg_per_meter": 2.4
+      },
+      "is_custom": false
+    },
+    {
+      "id": "naroznik",
+      "name": "Narożnik zewnętrzny",
+      "description": "Obróbka narożnika zewnętrznego",
+      "development_width": 400.0,
+      "material_type": "stal",
+      "price_per_meter": 42.0,
+      "unit_conversions": {
+        "m2_per_meter": 0.4,
+        "kg_per_meter": 1.9
+      },
+      "is_custom": false
+    },
+    {
+      "id": "parapety",
+      "name": "Parapet zewnętrzny",
+      "description": "Obróbka parapetów",
+      "development_width": 300.0,
+      "material_type": "stal",
+      "price_per_meter": 38.0,
+      "unit_conversions": {
+        "m2_per_meter": 0.3,
+        "kg_per_meter": 1.4
+      },
+      "is_custom": false
+    }
+  ],
+  "custom_profiles": [],
+  "materials": [
+    {
+      "id": "stal-polyester",
+      "name": "Blacha stalowa powlekana polyester",
+      "material_type": "stal",
+      "thickness_mm": 0.5,
+      "coating": "polyester",
+      "price_per_m2": 45.0,
+      "price_per_kg": 8.5,
+      "weight_per_m2": 4.8,
+      "color": "",
+      "supplier": ""
+    },
+    {
+      "id": "aluminium",
+      "name": "Blacha aluminiowa",
+      "material_type": "aluminium",
+      "thickness_mm": 0.7,
+      "coating": "anodowana",
+      "price_per_m2": 85.0,
+      "price_per_kg": 25.0,
+      "weight_per_m2": 1.9,
+      "color": "",
+      "supplier": ""
+    },
+    {
+      "id": "miedz",
+      "name": "Blacha miedziana naturalna",
+      "material_type": "miedź",
+      "thickness_mm": 0.6,
+      "coating": "naturalna",
+      "price_per_m2": 180.0,
+      "price_per_kg": 45.0,
+      "weight_per_m2": 5.4,
+      "color": "miedź",
+      "supplier": ""
+    }
+  ]
+}
