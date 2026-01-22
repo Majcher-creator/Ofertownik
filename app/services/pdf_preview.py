@@ -21,7 +21,8 @@ class PDFPreview:
         Generuje PDF do pliku tymczasowego i otwiera go w domyślnej aplikacji.
         
         Args:
-            pdf_content_generator: Funkcja generująca PDF (przyjmuje ścieżkę jako pierwszy argument)
+            pdf_content_generator: Funkcja generująca PDF (przyjmuje ścieżkę jako pierwszy argument).
+                Zwróć False, jeśli generowanie się nie powiedzie (None traktowane jako sukces).
             *args, **kwargs: Argumenty przekazywane do generatora
             
         Returns:
@@ -40,15 +41,14 @@ class PDFPreview:
             
             # Wywołanie generatora PDF z ścieżką do pliku tymczasowego
             generator_result = pdf_content_generator(temp_path, *args, **kwargs)
-            if generator_result is False:
-                if os.path.exists(temp_path):
+            file_exists = os.path.exists(temp_path)
+            if generator_result is False or not file_exists:
+                if file_exists:
                     try:
                         os.unlink(temp_path)
                     except OSError:
                         # Ignore cleanup errors
                         pass
-                return None
-            if not os.path.exists(temp_path):
                 return None
             
             # Otworzenie pliku w domyślnej aplikacji
