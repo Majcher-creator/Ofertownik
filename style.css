@@ -3,6 +3,7 @@
 
 :root {
     --primary-color: #2C3E50;
+    --accent-color: #F1C40F;     /* Sunny yellow (was orange) */
     --accent-color: #F1C40F;
     --success-color: #27AE60;
     --light-bg: #ECF0F1;
@@ -10,6 +11,7 @@
     --text-dark: #2C3E50;
     --text-light: #7F8C8D;
     --border-color: #BDC3C7;
+    --table-header: #F9E79F;     /* Light yellow (was warm orange) */
     --table-header: #F9E79F;
 }
 

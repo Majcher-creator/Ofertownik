@@ -83,6 +83,8 @@ except ImportError:
 COLORS = {
     'primary': '#2C3E50',        # Dark blue-gray for headers
     'secondary': '#34495E',      # Lighter blue-gray
+    'accent': '#F1C40F',         # Sunny yellow accent (was orange)
+    'accent_dark': '#D4AC0D',    # Darker yellow (was darker orange)
     'accent': '#F1C40F',         # Yellow accent
     'accent_dark': '#D4AC0D',    # Darker yellow
     'success': '#27AE60',        # Green for success
@@ -93,6 +95,8 @@ COLORS = {
     'text_dark': '#2C3E50',      # Dark text
     'text_light': '#7F8C8D',     # Light gray text
     'border': '#BDC3C7',         # Border color
+    'table_header': '#F9E79F',   # Light yellow table header (was warm orange)
+    'table_alt': '#FEFCF3',      # Very light yellow alternate row (was light orange)
     'table_header': '#F9E79F',   # Table header (warm yellow)
     'table_alt': '#FEFCF3',      # Alternate row color
 }
