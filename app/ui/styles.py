@@ -13,6 +13,8 @@ COLORS: Dict[str, str] = {
     'secondary': '#34495E',      # Lighter blue-gray
     'accent': '#F1C40F',         # Sunny yellow accent (was orange)
     'accent_dark': '#D4AC0D',    # Darker yellow (was darker orange)
+    'accent': '#F1C40F',         # Yellow accent
+    'accent_dark': '#D4AC0D',    # Darker yellow
     'success': '#27AE60',        # Green for success
     'warning': '#F39C12',        # Yellow for warnings
     'danger': '#E74C3C',         # Red for errors
@@ -23,6 +25,8 @@ COLORS: Dict[str, str] = {
     'border': '#BDC3C7',         # Border color
     'table_header': '#F9E79F',   # Light yellow table header (was warm orange)
     'table_alt': '#FEFCF3',      # Very light yellow alternate row (was light orange)
+    'table_header': '#F9E79F',   # Table header (warm yellow)
+    'table_alt': '#FEFCF3',      # Alternate row color
 }
 
 # Dark mode color palette
@@ -31,6 +35,8 @@ COLORS_DARK: Dict[str, str] = {
     'secondary': '#2C3E50',      # Dark blue-gray
     'accent': '#F1C40F',         # Sunny yellow accent (was orange)
     'accent_dark': '#D4AC0D',    # Darker yellow (was darker orange)
+    'accent': '#F1C40F',         # Yellow accent (same)
+    'accent_dark': '#D4AC0D',    # Darker yellow (same)
     'success': '#27AE60',        # Green (same)
     'warning': '#F39C12',        # Yellow (same)
     'danger': '#E74C3C',         # Red (same)
