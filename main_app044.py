@@ -86,6 +86,13 @@ except ImportError:
     EMAIL_SERVICE_AVAILABLE = False
     EmailService = None
 
+# Pandas for Excel/CSV import
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+
 # ---------------- Color Theme ----------------
 # Modern color palette for roofing application
 COLORS = {
@@ -107,6 +114,24 @@ COLORS = {
     'table_alt': '#FEFCF3',      # Very light yellow alternate row (was light orange)
     'table_header': '#F9E79F',   # Table header (warm yellow)
     'table_alt': '#FEFCF3',      # Alternate row color
+}
+
+# Dark mode color palette
+COLORS_DARK = {
+    'primary': '#1A252F',        # Very dark blue-gray
+    'secondary': '#2C3E50',      # Dark blue-gray
+    'accent': '#F1C40F',         # Yellow accent (same)
+    'accent_dark': '#D4AC0D',    # Darker yellow (same)
+    'success': '#27AE60',        # Green (same)
+    'warning': '#F39C12',        # Yellow (same)
+    'danger': '#E74C3C',         # Red (same)
+    'bg_light': '#1E1E1E',       # Dark background
+    'bg_white': '#2D2D30',       # Dark widget background
+    'text_dark': '#E0E0E0',      # Light text for dark mode
+    'text_light': '#9B9B9B',     # Gray text for dark mode
+    'border': '#3E3E42',         # Dark border
+    'table_header': '#3E2723',   # Dark table header
+    'table_alt': '#252526',      # Dark alternate row
 }
 
 # ---------------- Helpers ----------------
@@ -132,86 +157,104 @@ if not APP_MODULES_AVAILABLE:
         s = re.sub(r'[^\w\-\._]', '', s)
         return s[:maxlen]
 
-def apply_modern_style(root):
+def apply_modern_style(root, dark_mode=False):
     """Apply modern styling to ttk widgets."""
+    colors = COLORS_DARK if dark_mode else COLORS
+    
     style = ttk.Style(root)
     style.theme_use('clam')  # Use clam theme as base
     
     # Configure general styles
-    style.configure('TFrame', background=COLORS['bg_light'])
-    style.configure('TLabel', background=COLORS['bg_light'], foreground=COLORS['text_dark'], font=('Segoe UI', 10))
-    style.configure('TLabelframe', background=COLORS['bg_light'], foreground=COLORS['text_dark'])
-    style.configure('TLabelframe.Label', background=COLORS['bg_light'], foreground=COLORS['primary'], font=('Segoe UI', 11, 'bold'))
+    style.configure('TFrame', background=colors['bg_light'])
+    style.configure('TLabel', background=colors['bg_light'], foreground=colors['text_dark'], font=('Segoe UI', 10))
+    style.configure('TLabelframe', background=colors['bg_light'], foreground=colors['text_dark'])
+    style.configure('TLabelframe.Label', background=colors['bg_light'], foreground=colors['accent'] if dark_mode else colors['primary'], font=('Segoe UI', 11, 'bold'))
     
     # Configure buttons
     style.configure('TButton', 
-                    background=COLORS['primary'], 
-                    foreground=COLORS['bg_white'],
+                    background=colors['primary'], 
+                    foreground=colors['text_dark'] if dark_mode else colors['bg_white'],
                     padding=(10, 5),
                     font=('Segoe UI', 10))
     style.map('TButton', 
-              background=[('active', COLORS['secondary']), ('pressed', COLORS['accent_dark'])])
+              background=[('active', colors['secondary']), ('pressed', colors['accent_dark'])])
     
     # Accent button style
     style.configure('Accent.TButton', 
-                    background=COLORS['accent'],
-                    foreground=COLORS['bg_white'],
+                    background=colors['accent'],
+                    foreground=colors['primary'],
                     padding=(12, 6),
                     font=('Segoe UI', 10, 'bold'))
     style.map('Accent.TButton', 
-              background=[('active', COLORS['accent_dark'])])
+              background=[('active', colors['accent_dark'])])
     
     # Success button style
     style.configure('Success.TButton', 
-                    background=COLORS['success'],
-                    foreground=COLORS['bg_white'],
+                    background=colors['success'],
+                    foreground=colors['bg_white'],
                     padding=(10, 5),
                     font=('Segoe UI', 10))
     style.map('Success.TButton', 
               background=[('active', '#229954')])
     
+    # Theme toggle button style
+    style.configure('Theme.TButton',
+                    background=colors['secondary'],
+                    foreground=colors['bg_white'] if not dark_mode else colors['text_dark'],
+                    padding=(8, 4),
+                    font=('Segoe UI', 9))
+    style.map('Theme.TButton',
+              background=[('active', colors['primary'])])
+    
     # Configure entries
     style.configure('TEntry', 
-                    fieldbackground=COLORS['bg_white'],
+                    fieldbackground=colors['bg_white'],
+                    foreground=colors['text_dark'],
+                    insertcolor=colors['text_dark'],
                     borderwidth=2,
                     relief='flat')
     
     # Configure comboboxes
     style.configure('TCombobox', 
-                    fieldbackground=COLORS['bg_white'],
-                    background=COLORS['bg_white'])
+                    fieldbackground=colors['bg_white'],
+                    background=colors['bg_white'],
+                    foreground=colors['text_dark'],
+                    arrowcolor=colors['text_dark'])
+    style.map('TCombobox',
+              fieldbackground=[('readonly', colors['bg_white'])],
+              foreground=[('readonly', colors['text_dark'])])
     
     # Configure notebooks/tabs
-    style.configure('TNotebook', background=COLORS['bg_light'])
+    style.configure('TNotebook', background=colors['bg_light'])
     style.configure('TNotebook.Tab', 
-                    background=COLORS['bg_light'],
-                    foreground=COLORS['text_dark'],
+                    background=colors['bg_light'],
+                    foreground=colors['text_dark'],
                     padding=(15, 8),
                     font=('Segoe UI', 10))
     style.map('TNotebook.Tab',
-              background=[('selected', COLORS['accent']), ('active', COLORS['secondary'])],
-              foreground=[('selected', COLORS['bg_white']), ('active', COLORS['bg_white'])])
+              background=[('selected', colors['accent']), ('active', colors['secondary'])],
+              foreground=[('selected', colors['primary']), ('active', colors['bg_white'])])
     
     # Configure Treeview
     style.configure('Treeview',
-                    background=COLORS['bg_white'],
-                    foreground=COLORS['text_dark'],
-                    fieldbackground=COLORS['bg_white'],
+                    background=colors['bg_white'],
+                    foreground=colors['text_dark'],
+                    fieldbackground=colors['bg_white'],
                     rowheight=28,
                     font=('Segoe UI', 10))
     style.configure('Treeview.Heading',
-                    background=COLORS['table_header'],
-                    foreground=COLORS['text_dark'],
+                    background=colors['table_header'],
+                    foreground=colors['text_dark'],
                     font=('Segoe UI', 10, 'bold'))
     style.map('Treeview',
-              background=[('selected', COLORS['accent'])],
-              foreground=[('selected', COLORS['bg_white'])])
+              background=[('selected', colors['accent'])],
+              foreground=[('selected', colors['primary'])])
     
     # Configure Panedwindow
-    style.configure('TPanedwindow', background=COLORS['bg_light'])
+    style.configure('TPanedwindow', background=colors['bg_light'])
     
     # Configure Separator
-    style.configure('TSeparator', background=COLORS['border'])
+    style.configure('TSeparator', background=colors['border'])
     
     return style
 
@@ -474,12 +517,14 @@ if not APP_MODULES_AVAILABLE:
 class RoofCalculatorApp:
     def __init__(self, master):
         self.master = master
-        master.title("🏠 Kalkulator Dachów - v4.6")
+        master.title("🏠 Kalkulator Dachów - v4.8")
         master.geometry("1400x980")
-        master.configure(bg=COLORS['bg_light'])
         
-        # Apply modern styling
-        self.style = apply_modern_style(master)
+        # Initialize dark mode variable
+        self.dark_mode = tk.BooleanVar(value=False)
+        
+        # Temporary: set background (will be updated after loading settings)
+        master.configure(bg=COLORS['bg_light'])
         
         # data stores
         self.clients: List[Dict[str,Any]] = []
@@ -518,7 +563,8 @@ class RoofCalculatorApp:
             "company_account": "14 2000 0000 0000 0000 0000 000",
             # maintained keys:
             "last_invoice_year": None,
-            "last_invoice_seq": 0
+            "last_invoice_seq": 0,
+            "dark_mode": False
         }
         # register PDF font
         self._registered_pdf_font_name = None
@@ -532,6 +578,12 @@ class RoofCalculatorApp:
                     self._registered_pdf_font_name = None
         # load db/settings
         self._load_local_db(); self._load_settings()
+        
+        # Apply modern styling with dark mode preference
+        colors = COLORS_DARK if self.dark_mode.get() else COLORS
+        master.configure(bg=colors['bg_light'])
+        self.style = apply_modern_style(master, dark_mode=self.dark_mode.get())
+        
         # Email service
         if EMAIL_SERVICE_AVAILABLE:
             self.email_service = EmailService()
@@ -589,6 +641,8 @@ class RoofCalculatorApp:
                     # merge with defaults
                     self.settings.update(s)
                     self.logo_path = s.get("logo", self.logo_path)
+                    # Load dark mode preference
+                    self.dark_mode.set(s.get("dark_mode", False))
         except Exception:
             pass
 
@@ -597,6 +651,7 @@ class RoofCalculatorApp:
         try:
             data = dict(self.settings)
             data["logo"] = self.logo_path
+            data["dark_mode"] = self.dark_mode.get()
             data["recent_files"] = self.recent_files[:10]  # Keep last 10 recent files
             with open(p,"w",encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
@@ -846,32 +901,42 @@ Wersja: 4.7
 
     # header bar with company info and quick actions
     def create_header_bar(self):
-        header = tk.Frame(self.master, bg=COLORS['primary'], height=60)
-        header.pack(fill='x', side='top')
-        header.pack_propagate(False)
+        colors = COLORS_DARK if self.dark_mode.get() else COLORS
+        self.header = tk.Frame(self.master, bg=colors['primary'], height=60)
+        self.header.pack(fill='x', side='top')
+        self.header.pack_propagate(False)
         
         # Left side - logo area and title
-        left = tk.Frame(header, bg=COLORS['primary'])
+        left = tk.Frame(self.header, bg=colors['primary'])
         left.pack(side='left', padx=15, pady=8)
         
-        title_lbl = tk.Label(left, text="🏠 KALKULATOR DACHÓW", 
+        self.title_lbl = tk.Label(left, text="🏠 KALKULATOR DACHÓW", 
                             font=('Segoe UI', 16, 'bold'),
-                            fg=COLORS['bg_white'], bg=COLORS['primary'])
-        title_lbl.pack(side='left')
+                            fg=colors['bg_white'], bg=colors['primary'])
+        self.title_lbl.pack(side='left')
         
-        subtitle = tk.Label(left, text="v4.6 - Kosztorys Ofertowy",
+        self.subtitle = tk.Label(left, text="v4.8 - Kosztorys Ofertowy",
                            font=('Segoe UI', 10),
-                           fg=COLORS['border'], bg=COLORS['primary'])
-        subtitle.pack(side='left', padx=15)
+                           fg=colors['border'], bg=colors['primary'])
+        self.subtitle.pack(side='left', padx=15)
         
-        # Right side - quick info
-        right = tk.Frame(header, bg=COLORS['primary'])
+        # Right side - theme toggle and quick info
+        right = tk.Frame(self.header, bg=colors['primary'])
         right.pack(side='right', padx=15, pady=8)
+        
+        # Theme toggle button
+        theme_icon = "☀️" if self.dark_mode.get() else "🌙"
+        self.theme_toggle_btn = ttk.Button(right, 
+            text=theme_icon,
+            style='Theme.TButton',
+            width=3,
+            command=self.toggle_dark_mode)
+        self.theme_toggle_btn.pack(side='right', padx=(10, 0))
         
         self.company_header_label = tk.Label(right, 
             text=f"📋 {self.settings.get('company_name', '')}",
             font=('Segoe UI', 10),
-            fg=COLORS['bg_white'], bg=COLORS['primary'])
+            fg=colors['bg_white'], bg=colors['primary'])
         self.company_header_label.pack(side='right')
 
     # menu
@@ -889,6 +954,7 @@ Wersja: 4.7
         file_menu.add_separator()
         file_menu.add_command(label="Zapisz bazę materiałów", command=self.save_materials_db)
         file_menu.add_command(label="Wczytaj bazę materiałów", command=self.load_materials_db)
+        file_menu.add_command(label="Importuj bazę z Excel/CSV...", command=self.import_materials_excel_csv)
         file_menu.add_separator()
         file_menu.add_command(label="Zapisz ustawienia", command=self._save_settings)
         file_menu.add_separator()
@@ -904,6 +970,9 @@ Wersja: 4.7
         calc_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Obliczenia", menu=calc_menu)
         calc_menu.add_command(label="Oblicz kosztorys", command=self.calculate_cost_estimation, accelerator="F5")
         
+        view_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Widok", menu=view_menu)
+        view_menu.add_checkbutton(label="Tryb ciemny", variable=self.dark_mode, command=self.toggle_dark_mode)
+        
         company_menu = tk.Menu(menubar, tearoff=0); menubar.add_cascade(label="Firma", menu=company_menu)
         company_menu.add_command(label="Edytuj dane firmy (aktualne)", command=self.edit_current_company)
         company_menu.add_command(label="Wybierz logo...", command=self.select_logo)
@@ -913,14 +982,80 @@ Wersja: 4.7
 
     def create_status_bar(self):
         """Create status bar at the bottom showing keyboard shortcuts"""
-        status = tk.Frame(self.master, bg=COLORS['border'], height=25)
-        status.pack(fill='x', side='bottom')
+        colors = COLORS_DARK if self.dark_mode.get() else COLORS
+        self.status = tk.Frame(self.master, bg=colors['border'], height=25)
+        self.status.pack(fill='x', side='bottom')
         
+        self.status_label = tk.Label(self.status, 
+            text="Ctrl+S: Zapisz | Ctrl+O: Wczytaj | F5: Oblicz | Del: Usuń | Ctrl+A: Zaznacz | F1: Pomoc",
         self.status_label = tk.Label(status, 
             text="Ctrl+S: Zapisz | Ctrl+O: Wczytaj | Ctrl+M: Email | F5: Oblicz | Del: Usuń | Ctrl+A: Zaznacz | F1: Pomoc",
             font=('Segoe UI', 9),
-            bg=COLORS['border'], fg=COLORS['text_dark'])
+            bg=colors['border'], fg=colors['text_dark'])
         self.status_label.pack(side='left', padx=10)
+
+    def toggle_dark_mode(self):
+        """Toggle between light and dark mode"""
+        # Save preference
+        self.settings["dark_mode"] = self.dark_mode.get()
+        self._save_settings()
+        
+        # Get colors based on mode
+        colors = COLORS_DARK if self.dark_mode.get() else COLORS
+        
+        # Reapply style
+        self.style = apply_modern_style(self.master, dark_mode=self.dark_mode.get())
+        self.master.configure(bg=colors['bg_light'])
+        
+        # Update header bar
+        self._update_header_colors()
+        
+        # Update status bar
+        self._update_status_bar_colors()
+        
+        # Notify user
+        messagebox.showinfo("Motyw", 
+            f"Tryb {'ciemny' if self.dark_mode.get() else 'jasny'} został włączony.\n"
+            "Niektóre zmiany mogą wymagać ponownego uruchomienia aplikacji.")
+    
+    def _update_header_colors(self):
+        """Update header bar colors based on current theme"""
+        colors = COLORS_DARK if self.dark_mode.get() else COLORS
+        
+        if hasattr(self, 'header'):
+            self.header.configure(bg=colors['primary'])
+            
+            # Update all widgets in header
+            for widget in self.header.winfo_children():
+                if isinstance(widget, tk.Frame):
+                    widget.configure(bg=colors['primary'])
+                    for child in widget.winfo_children():
+                        if isinstance(child, tk.Label):
+                            child.configure(bg=colors['primary'], fg=colors['bg_white'])
+                        elif isinstance(child, tk.Frame):
+                            child.configure(bg=colors['primary'])
+        
+        # Update theme toggle button icon
+        if hasattr(self, 'theme_toggle_btn'):
+            theme_icon = "☀️" if self.dark_mode.get() else "🌙"
+            self.theme_toggle_btn.configure(text=theme_icon)
+        
+        # Update title and subtitle
+        if hasattr(self, 'title_lbl'):
+            self.title_lbl.configure(fg=colors['bg_white'], bg=colors['primary'])
+        if hasattr(self, 'subtitle'):
+            self.subtitle.configure(fg=colors['border'], bg=colors['primary'])
+        if hasattr(self, 'company_header_label'):
+            self.company_header_label.configure(fg=colors['bg_white'], bg=colors['primary'])
+    
+    def _update_status_bar_colors(self):
+        """Update status bar colors based on current theme"""
+        colors = COLORS_DARK if self.dark_mode.get() else COLORS
+        
+        if hasattr(self, 'status'):
+            self.status.configure(bg=colors['border'])
+        if hasattr(self, 'status_label'):
+            self.status_label.configure(bg=colors['border'], fg=colors['text_dark'])
 
     def new_cost_estimate(self):
         if self.cost_items or (hasattr(self,"comment_text") and self.comment_text.get("1.0","end").strip()):
@@ -1005,6 +1140,93 @@ Wersja: 4.7
             messagebox.showinfo("Wczytano", f"Wczytano bazę: {path}")
         except Exception as e:
             messagebox.showerror("Błąd", f"Nie udało się wczytać bazy:\n{e}")
+
+    def import_materials_excel_csv(self):
+        """Import materials database from Excel/CSV file"""
+        if not PANDAS_AVAILABLE:
+            messagebox.showerror("Błąd", 
+                "Biblioteka pandas nie jest zainstalowana.\n"
+                "Zainstaluj: pip install pandas openpyxl")
+            return
+        
+        path = filedialog.askopenfilename(
+            title="Wybierz plik Excel/CSV",
+            filetypes=[
+                ("Excel/CSV", "*.xlsx *.xls *.csv"),
+                ("Excel", "*.xlsx *.xls"),
+                ("CSV", "*.csv"),
+                ("Wszystkie", "*.*")
+            ]
+        )
+        if not path:
+            return
+        
+        try:
+            # Load file
+            if path.endswith('.csv'):
+                df = pd.read_csv(path, encoding='utf-8')
+            else:
+                df = pd.read_excel(path)
+            
+            # Flexible column mapping (case-insensitive)
+            # Expected columns: name/nazwa, unit/jednostka, price_unit_net/cena_netto, vat_rate/vat, category/kategoria
+            column_mapping = {
+                'nazwa': 'name', 'name': 'name',
+                'jednostka': 'unit', 'unit': 'unit', 'jm': 'unit',
+                'cena_netto': 'price_unit_net', 'cena': 'price_unit_net', 'price': 'price_unit_net', 'price_unit_net': 'price_unit_net',
+                'vat': 'vat_rate', 'stawka_vat': 'vat_rate', 'vat_rate': 'vat_rate',
+                'kategoria': 'category', 'category': 'category', 'typ': 'category'
+            }
+            
+            # Map column names
+            df.columns = [column_mapping.get(col.lower().strip(), col.lower().strip()) for col in df.columns]
+            
+            # Parse rows
+            imported = []
+            for _, row in df.iterrows():
+                try:
+                    item = {
+                        'name': str(row.get('name', '')).strip(),
+                        'unit': str(row.get('unit', 'szt')).strip(),
+                        'price_unit_net': float(row.get('price_unit_net', 0)),
+                        'vat_rate': int(row.get('vat_rate', 23)),
+                        'category': str(row.get('category', 'material')).strip()
+                    }
+                    # Only add items with non-empty names
+                    if item['name']:
+                        imported.append(item)
+                except (ValueError, TypeError):
+                    # Skip rows with invalid data
+                    continue
+            
+            if not imported:
+                messagebox.showwarning("Import", "Nie znaleziono żadnych poprawnych pozycji do zaimportowania.")
+                return
+            
+            # Ask whether to replace or add to existing database
+            if self.materials_db:
+                result = messagebox.askyesnocancel(
+                    "Import",
+                    f"Zaimportowano {len(imported)} pozycji.\n\n"
+                    "Tak = Zastąp istniejącą bazę\n"
+                    "Nie = Dodaj do istniejącej bazy\n"
+                    "Anuluj = Anuluj import"
+                )
+                if result is None:  # Cancel
+                    return
+                elif result:  # Yes - Replace
+                    self.materials_db = imported
+                else:  # No - Add
+                    self.materials_db.extend(imported)
+            else:
+                self.materials_db = imported
+            
+            # Save to local database
+            self._save_local_db()
+            messagebox.showinfo("Sukces", f"Zaimportowano {len(imported)} materiałów/usług.")
+            
+        except Exception as e:
+            messagebox.showerror("Błąd importu", f"Nie udało się zaimportować pliku:\n{e}")
 
     # notebook
     def create_notebook(self):

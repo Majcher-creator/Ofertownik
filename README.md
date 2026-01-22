@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## 🏠 Profesjonalny Kalkulator Kosztorysów Dekarskich v4.7
+## 🏠 Profesjonalny Kalkulator Kosztorysów Dekarskich v4.8
 
 Kompleksowa aplikacja desktopowa do tworzenia profesjonalnych kosztorysów ofertowych dla prac dekarskich.
 
@@ -252,11 +252,11 @@ Zobacz [GUTTER_SYSTEM_DOCUMENTATION.md](GUTTER_SYSTEM_DOCUMENTATION.md) dla peł
 #### Cechy UI
 - **Nowoczesny design** - Przejrzysty interfejs zgodny z najlepszymi praktykami UX
 - **Kolorystyka branżowa** - Pomarańczowe akcenty nawiązujące do koloru dachówek
-- **Tryb ciemny** - Opcjonalny dark mode dla wygody pracy (wkrótce)
+- **Tryb ciemny** - Opcjonalny dark mode dla wygody pracy
 - **Responsywność** - Automatyczne dostosowanie do rozmiaru okna
 - **Ikony i oznaczenia** - Intuicyjna nawigacja z ikonami
 
-#### Skróty klawiaturowe (wkrótce)
+#### Skróty klawiaturowe
 - `Ctrl+N` - Nowy kosztorys
 - `Ctrl+S` - Zapisz kosztorys
 - `Ctrl+O` - Otwórz kosztorys
@@ -335,7 +335,7 @@ is_valid, error_msg = validate_cost_item(item)
 A: Nie, aplikacja działa całkowicie offline. Wszystkie dane są przechowywane lokalnie.
 
 **Q: Jak zaimportować własną bazę materiałów?**  
-A: Możesz edytować plik `materialy_uslugi.json` lub użyć funkcji importu z Excel/CSV (wkrótce).
+A: Możesz edytować plik `materialy_uslugi.json` lub użyć funkcji importu z Excel/CSV (Plik -> Importuj bazę z Excel/CSV).
 
 **Q: Czy mogę zmienić logo firmy na PDF?**  
 A: Tak, zamień pliki `logo400x100.png` i `logo800x400.png` na własne w tym samym rozmiarze.
@@ -350,6 +350,13 @@ A: Tak, aplikacja jest w pełni wieloplatformowa.
 A: Utwórz Issue na GitHubie: [github.com/Majcher-creator/Ofertownik/issues](https://github.com/Majcher-creator/Ofertownik/issues)
 
 ### 📝 Changelog
+
+#### v4.8.0 (2026-01-01)
+- 🎨 Dodano tryb ciemny (dark mode) z przełączaniem w czasie rzeczywistym
+- 📥 Dodano import bazy materiałów z plików Excel/CSV
+- 🔧 Dodano pandas do zależności projektu
+- ✅ Dodano testy dla ThemeManager
+- 📝 Zaktualizowano dokumentację
 
 #### v4.7.0 (2024-12-27)
 - ✨ Dodano modułową strukturę projektu (app/)

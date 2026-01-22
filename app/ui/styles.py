@@ -1,10 +1,11 @@
 """
 UI Styles and theme configuration for the Ofertownik application.
-Provides modern color palette and ttk styling.
+Provides modern color palette and ttk styling with dark mode support.
 """
 
 from tkinter import ttk
-from typing import Dict
+from typing import Dict, Callable, Optional
+import tkinter as tk
 
 
 # Modern color palette for roofing application
@@ -50,6 +51,121 @@ COLORS_DARK: Dict[str, str] = {
 }
 
 
+class ThemeManager:
+    """
+    Manages application theme switching between light and dark modes.
+    """
+    
+    _instance: Optional['ThemeManager'] = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
+        self._dark_mode = False
+        self._root: Optional[tk.Tk] = None
+        self._style: Optional[ttk.Style] = None
+        self._callbacks: list[Callable[[bool], None]] = []
+    
+    @property
+    def dark_mode(self) -> bool:
+        """Returns True if dark mode is enabled."""
+        return self._dark_mode
+    
+    @property
+    def colors(self) -> Dict[str, str]:
+        """Returns the current color palette based on theme."""
+        return COLORS_DARK if self._dark_mode else COLORS
+    
+    def initialize(self, root: tk.Tk, dark_mode: bool = False) -> ttk.Style:
+        """
+        Initialize the theme manager with the root window.
+        
+        Args:
+            root: The root Tk window
+            dark_mode: Initial dark mode state
+            
+        Returns:
+            The configured ttk.Style object
+        """
+        self._root = root
+        self._dark_mode = dark_mode
+        self._style = apply_modern_style(root, dark_mode)
+        return self._style
+    
+    def toggle_theme(self) -> bool:
+        """
+        Toggle between light and dark mode.
+        
+        Returns:
+            The new dark mode state
+        """
+        self._dark_mode = not self._dark_mode
+        if self._root:
+            self._style = apply_modern_style(self._root, self._dark_mode)
+            self._root.configure(bg=self.colors['bg_light'])
+            # Notify all registered callbacks
+            for callback in self._callbacks:
+                try:
+                    callback(self._dark_mode)
+                except Exception:
+                    pass
+        return self._dark_mode
+    
+    def set_theme(self, dark_mode: bool) -> None:
+        """
+        Set the theme explicitly.
+        
+        Args:
+            dark_mode: True for dark mode, False for light mode
+        """
+        if self._dark_mode != dark_mode:
+            self.toggle_theme()
+    
+    def register_callback(self, callback: Callable[[bool], None]) -> None:
+        """
+        Register a callback to be called when theme changes.
+        
+        Args:
+            callback: Function that takes a bool (dark_mode state)
+        """
+        if callback not in self._callbacks:
+            self._callbacks.append(callback)
+    
+    def unregister_callback(self, callback: Callable[[bool], None]) -> None:
+        """
+        Unregister a previously registered callback.
+        
+        Args:
+            callback: The callback to remove
+        """
+        if callback in self._callbacks:
+            self._callbacks.remove(callback)
+
+
+# Global theme manager instance
+theme_manager = ThemeManager()
+
+
+def get_colors(dark_mode: bool = False) -> Dict[str, str]:
+    """
+    Get the color palette for the specified mode.
+    
+    Args:
+        dark_mode: Whether to return dark mode colors
+        
+    Returns:
+        Dictionary of color values
+    """
+    return COLORS_DARK if dark_mode else COLORS
+
+
 def apply_modern_style(root, dark_mode: bool = False) -> ttk.Style:
     """
     Apply modern styling to ttk widgets.
@@ -77,13 +193,13 @@ def apply_modern_style(root, dark_mode: bool = False) -> ttk.Style:
                    foreground=colors['text_dark'])
     style.configure('TLabelframe.Label', 
                    background=colors['bg_light'], 
-                   foreground=colors['primary'], 
+                   foreground=colors['primary'] if not dark_mode else colors['accent'], 
                    font=('Segoe UI', 11, 'bold'))
     
     # Configure buttons
     style.configure('TButton', 
                     background=colors['primary'], 
-                    foreground=colors['bg_white'],
+                    foreground=colors['text_dark'] if dark_mode else colors['bg_white'],
                     padding=(10, 5),
                     font=('Segoe UI', 10))
     style.map('TButton', 
@@ -93,7 +209,7 @@ def apply_modern_style(root, dark_mode: bool = False) -> ttk.Style:
     # Accent button style
     style.configure('Accent.TButton', 
                     background=colors['accent'],
-                    foreground=colors['bg_white'],
+                    foreground=colors['primary'],
                     padding=(12, 6),
                     font=('Segoe UI', 10, 'bold'))
     style.map('Accent.TButton', 
@@ -108,16 +224,63 @@ def apply_modern_style(root, dark_mode: bool = False) -> ttk.Style:
     style.map('Success.TButton', 
               background=[('active', '#229954')])
     
+    # Danger button style (for dark mode toggle visibility)
+    style.configure('Danger.TButton', 
+                    background=colors['danger'],
+                    foreground=colors['bg_white'],
+                    padding=(10, 5),
+                    font=('Segoe UI', 10))
+    style.map('Danger.TButton', 
+              background=[('active', '#C0392B')])
+    
+    # Theme toggle button style
+    style.configure('Theme.TButton',
+                    background=colors['secondary'],
+                    foreground=colors['bg_white'] if not dark_mode else colors['text_dark'],
+                    padding=(8, 4),
+                    font=('Segoe UI', 9))
+    style.map('Theme.TButton',
+              background=[('active', colors['primary'])])
+    
     # Configure entries
     style.configure('TEntry', 
                     fieldbackground=colors['bg_white'],
+                    foreground=colors['text_dark'],
+                    insertcolor=colors['text_dark'],
                     borderwidth=2,
                     relief='flat')
     
     # Configure comboboxes
     style.configure('TCombobox', 
                     fieldbackground=colors['bg_white'],
-                    background=colors['bg_white'])
+                    background=colors['bg_white'],
+                    foreground=colors['text_dark'],
+                    arrowcolor=colors['text_dark'])
+    style.map('TCombobox',
+              fieldbackground=[('readonly', colors['bg_white'])],
+              foreground=[('readonly', colors['text_dark'])])
+    
+    # Configure spinbox
+    style.configure('TSpinbox',
+                    fieldbackground=colors['bg_white'],
+                    foreground=colors['text_dark'],
+                    arrowcolor=colors['text_dark'])
+    
+    # Configure checkbuttons
+    style.configure('TCheckbutton',
+                    background=colors['bg_light'],
+                    foreground=colors['text_dark'],
+                    font=('Segoe UI', 10))
+    style.map('TCheckbutton',
+              background=[('active', colors['bg_light'])])
+    
+    # Configure radiobuttons
+    style.configure('TRadiobutton',
+                    background=colors['bg_light'],
+                    foreground=colors['text_dark'],
+                    font=('Segoe UI', 10))
+    style.map('TRadiobutton',
+              background=[('active', colors['bg_light'])])
     
     # Configure notebooks/tabs
     style.configure('TNotebook', background=colors['bg_light'])
@@ -129,7 +292,7 @@ def apply_modern_style(root, dark_mode: bool = False) -> ttk.Style:
     style.map('TNotebook.Tab',
               background=[('selected', colors['accent']), 
                          ('active', colors['secondary'])],
-              foreground=[('selected', colors['bg_white']), 
+              foreground=[('selected', colors['primary']), 
                          ('active', colors['bg_white'])])
     
     # Configure Treeview
@@ -145,7 +308,7 @@ def apply_modern_style(root, dark_mode: bool = False) -> ttk.Style:
                     font=('Segoe UI', 10, 'bold'))
     style.map('Treeview',
               background=[('selected', colors['accent'])],
-              foreground=[('selected', colors['bg_white'])])
+              foreground=[('selected', colors['primary'])])
     
     # Configure Panedwindow
     style.configure('TPanedwindow', background=colors['bg_light'])
@@ -153,4 +316,70 @@ def apply_modern_style(root, dark_mode: bool = False) -> ttk.Style:
     # Configure Separator
     style.configure('TSeparator', background=colors['border'])
     
+    # Configure Scrollbar
+    style.configure('TScrollbar',
+                    background=colors['bg_light'],
+                    troughcolor=colors['bg_white'],
+                    arrowcolor=colors['text_dark'])
+    
+    # Configure Scale
+    style.configure('TScale',
+                    background=colors['bg_light'],
+                    troughcolor=colors['bg_white'])
+    
+    # Configure Progressbar
+    style.configure('TProgressbar',
+                    background=colors['accent'],
+                    troughcolor=colors['bg_white'])
+    
+    # Configure Text widget colors (for tk.Text, not ttk)
+    # These will be applied separately to Text widgets
+    
     return style
+
+
+def configure_text_widget(widget: tk.Text, dark_mode: bool = False) -> None:
+    """
+    Configure a tk.Text widget with theme colors.
+    
+    Args:
+        widget: The Text widget to configure
+        dark_mode: Whether to use dark mode colors
+    """
+    colors = COLORS_DARK if dark_mode else COLORS
+    widget.configure(
+        bg=colors['bg_white'],
+        fg=colors['text_dark'],
+        insertbackground=colors['text_dark'],
+        selectbackground=colors['accent'],
+        selectforeground=colors['primary']
+    )
+
+
+def configure_listbox(widget: tk.Listbox, dark_mode: bool = False) -> None:
+    """
+    Configure a tk.Listbox widget with theme colors.
+    
+    Args:
+        widget: The Listbox widget to configure
+        dark_mode: Whether to use dark mode colors
+    """
+    colors = COLORS_DARK if dark_mode else COLORS
+    widget.configure(
+        bg=colors['bg_white'],
+        fg=colors['text_dark'],
+        selectbackground=colors['accent'],
+        selectforeground=colors['primary']
+    )
+
+
+def configure_canvas(widget: tk.Canvas, dark_mode: bool = False) -> None:
+    """
+    Configure a tk.Canvas widget with theme colors.
+    
+    Args:
+        widget: The Canvas widget to configure
+        dark_mode: Whether to use dark mode colors
+    """
+    colors = COLORS_DARK if dark_mode else COLORS
+    widget.configure(bg=colors['bg_white'])
