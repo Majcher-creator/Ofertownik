@@ -94,6 +94,16 @@ class TestPDFPreview:
             temp_path = PDFPreview.preview_pdf(failing_generator)
             
             assert temp_path is None
+
+    def test_preview_pdf_returns_none_on_generator_false(self):
+        """Test that preview_pdf returns None if generator signals failure."""
+        def failing_generator(path):
+            return False
+
+        with patch.object(PDFPreview, 'open_file', return_value=True):
+            temp_path = PDFPreview.preview_pdf(failing_generator)
+
+            assert temp_path is None
     
     @patch('platform.system', return_value='Windows')
     def test_open_file_windows(self, mock_platform):

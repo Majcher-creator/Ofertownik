@@ -103,6 +103,24 @@ class TestCostEstimateHistory:
         assert len(history.get_all_entries()) == 3
         assert history.get_latest().version == 3
         assert history.get_latest().description == "Third"
+
+    def test_add_entry_deep_copies_items_and_metadata(self):
+        """Test that history entry stores a snapshot independent of later changes."""
+        history = CostEstimateHistory()
+        items = [{'name': 'Item 1', 'total_gross': 100.0, 'nested': {'qty': 1}}]
+        metadata = {'client': 'Test', 'details': {'note': 'initial'}}
+
+        entry = history.add_entry("Snapshot", items, metadata)
+
+        items[0]['name'] = 'Updated'
+        items[0]['nested']['qty'] = 2
+        metadata['client'] = 'Changed'
+        metadata['details']['note'] = 'updated'
+
+        assert entry.items_snapshot[0]['name'] == 'Item 1'
+        assert entry.items_snapshot[0]['nested']['qty'] == 1
+        assert entry.metadata['client'] == 'Test'
+        assert entry.metadata['details']['note'] == 'initial'
         
     def test_get_entry(self):
         """Test getting specific entry by version."""

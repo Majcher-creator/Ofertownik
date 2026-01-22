@@ -39,7 +39,14 @@ class PDFPreview:
                 temp_path = temp_file.name
             
             # Wywołanie generatora PDF z ścieżką do pliku tymczasowego
-            pdf_content_generator(temp_path, *args, **kwargs)
+            generator_result = pdf_content_generator(temp_path, *args, **kwargs)
+            if generator_result is False or not os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except Exception:
+                    # Ignore cleanup errors
+                    pass
+                return None
             
             # Otworzenie pliku w domyślnej aplikacji
             if PDFPreview.open_file(temp_path):

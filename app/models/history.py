@@ -6,6 +6,7 @@ Tracks changes to cost estimates with snapshots and metadata.
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
+import copy
 import hashlib
 import json
 
@@ -85,8 +86,8 @@ class CostEstimateHistory:
             items_count=items_count,
             total_gross=total_gross,
             checksum=checksum,
-            items_snapshot=items.copy(),
-            metadata=metadata or {}
+            items_snapshot=copy.deepcopy(items),
+            metadata=copy.deepcopy(metadata) if metadata else {}
         )
         
         # Add to history
