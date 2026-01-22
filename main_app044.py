@@ -65,12 +65,18 @@ except ImportError:
 # Fallback implementations provided below for backward compatibility
 try:
     from app.utils.formatting import fmt_money, fmt_money_plain, is_valid_float_text, safe_filename
-    from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog
+    from app.ui.dialogs import ClientDialog, CostItemEditDialog, MaterialEditDialog, CompanyEditDialog, CompanyProfilesDialog
     from app.services.pdf_preview import PDFPreview
+    from app.models.history import CostEstimateHistory
+    from app.ui.dialogs.history_dialog import HistoryDialog
+    from app.ui.dialogs.create_from_existing_dialog import CreateFromExistingDialog
     APP_MODULES_AVAILABLE = True
 except ImportError:
     APP_MODULES_AVAILABLE = False
     PDFPreview = None
+    CostEstimateHistory = None
+    HistoryDialog = None
+    CreateFromExistingDialog = None
 
 # Import email service
 try:
@@ -85,6 +91,8 @@ except ImportError:
 COLORS = {
     'primary': '#2C3E50',        # Dark blue-gray for headers
     'secondary': '#34495E',      # Lighter blue-gray
+    'accent': '#F1C40F',         # Sunny yellow accent (was orange)
+    'accent_dark': '#D4AC0D',    # Darker yellow (was darker orange)
     'accent': '#F1C40F',         # Yellow accent
     'accent_dark': '#D4AC0D',    # Darker yellow
     'success': '#27AE60',        # Green for success
@@ -95,6 +103,8 @@ COLORS = {
     'text_dark': '#2C3E50',      # Dark text
     'text_light': '#7F8C8D',     # Light gray text
     'border': '#BDC3C7',         # Border color
+    'table_header': '#F9E79F',   # Light yellow table header (was warm orange)
+    'table_alt': '#FEFCF3',      # Very light yellow alternate row (was light orange)
     'table_header': '#F9E79F',   # Table header (warm yellow)
     'table_alt': '#FEFCF3',      # Alternate row color
 }
@@ -363,6 +373,103 @@ if not APP_MODULES_AVAILABLE:
         def apply(self):
             self.result = {"name": self.e_name.get().strip(), "unit": self.e_unit.get().strip(), "price_unit_net": float(self.e_price.get().replace(",",".") or 0.0), "vat_rate": int(self.vat_cb.get() or 23), "category": self.cat_cb.get() or "material"}
 
+    class CompanyEditDialog(simpledialog.Dialog):
+        def __init__(self,parent,title,profile=None):
+            self.profile = profile or {}
+            super().__init__(parent,title)
+        def body(self,master):
+            ttk.Label(master, text="Nazwa firmy:").grid(row=0,column=0,sticky="w",pady=2)
+            self.e_company_name = ttk.Entry(master, width=60); self.e_company_name.grid(row=0,column=1,pady=2)
+            ttk.Label(master, text="Adres:").grid(row=1,column=0,sticky="w",pady=2)
+            self.e_company_address = ttk.Entry(master, width=60); self.e_company_address.grid(row=1,column=1,pady=2)
+            ttk.Label(master, text="NIP:").grid(row=2,column=0,sticky="w",pady=2)
+            self.e_company_nip = ttk.Entry(master, width=60); self.e_company_nip.grid(row=2,column=1,pady=2)
+            ttk.Label(master, text="Telefon:").grid(row=3,column=0,sticky="w",pady=2)
+            self.e_company_phone = ttk.Entry(master, width=60); self.e_company_phone.grid(row=3,column=1,pady=2)
+            ttk.Label(master, text="E-mail:").grid(row=4,column=0,sticky="w",pady=2)
+            self.e_company_email = ttk.Entry(master, width=60); self.e_company_email.grid(row=4,column=1,pady=2)
+            ttk.Label(master, text="Numer konta:").grid(row=5,column=0,sticky="w",pady=2)
+            self.e_company_account = ttk.Entry(master, width=60); self.e_company_account.grid(row=5,column=1,pady=2)
+            if self.profile:
+                self.e_company_name.insert(0, self.profile.get("company_name",""))
+                self.e_company_address.insert(0, self.profile.get("company_address",""))
+                self.e_company_nip.insert(0, self.profile.get("company_nip",""))
+                self.e_company_phone.insert(0, self.profile.get("company_phone",""))
+                self.e_company_email.insert(0, self.profile.get("company_email",""))
+                self.e_company_account.insert(0, self.profile.get("company_account",""))
+            return self.e_company_name
+        def apply(self):
+            self.result = {"company_name": self.e_company_name.get().strip(), "company_address": self.e_company_address.get().strip(), "company_nip": self.e_company_nip.get().strip(), "company_phone": self.e_company_phone.get().strip(), "company_email": self.e_company_email.get().strip(), "company_account": self.e_company_account.get().strip(), "logo": self.profile.get("logo","")}
+
+    class CompanyProfilesDialog(tk.Toplevel):
+        def __init__(self,parent,profiles_path):
+            super().__init__(parent)
+            self.title("Profile firmy"); self.geometry("800x500"); self.transient(parent); self.grab_set()
+            self.profiles_path = profiles_path; self.profiles = []; self.selected_profile = None
+            self._load_profiles(); self._create_widgets()
+            self.update_idletasks()
+            x = (self.winfo_screenwidth() // 2) - (self.winfo_width() // 2); y = (self.winfo_screenheight() // 2) - (self.winfo_height() // 2)
+            self.geometry(f"+{x}+{y}")
+        def _load_profiles(self):
+            if os.path.exists(self.profiles_path):
+                try:
+                    with open(self.profiles_path,'r',encoding='utf-8') as f: self.profiles = json.load(f)
+                except Exception: self.profiles = []
+            else: self.profiles = []
+        def _save_profiles(self):
+            try:
+                os.makedirs(os.path.dirname(self.profiles_path), exist_ok=True)
+                with open(self.profiles_path,'w',encoding='utf-8') as f: json.dump(self.profiles, f, indent=2, ensure_ascii=False)
+            except Exception as e: messagebox.showerror("Błąd", f"Nie można zapisać profili: {e}")
+        def _create_widgets(self):
+            main_frame = ttk.Frame(self, padding=10); main_frame.pack(fill='both', expand=True)
+            ttk.Label(main_frame, text="Zarządzanie profilami firmy", font=('Segoe UI', 12, 'bold')).pack(pady=(0, 10))
+            list_frame = ttk.LabelFrame(main_frame, text="Dostępne profile", padding=10); list_frame.pack(fill='both', expand=True, pady=(0, 10))
+            scrollbar = ttk.Scrollbar(list_frame); scrollbar.pack(side='right', fill='y')
+            self.profiles_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, font=('Segoe UI', 10), height=15)
+            self.profiles_listbox.pack(side='left', fill='both', expand=True); scrollbar.config(command=self.profiles_listbox.yview)
+            self.profiles_listbox.bind('<Double-Button-1>', lambda e: self._load_selected()); self._refresh_list()
+            button_frame = ttk.Frame(main_frame); button_frame.pack(fill='x')
+            ttk.Button(button_frame, text="Nowy profil", command=self._add_profile).pack(side='left', padx=2)
+            ttk.Button(button_frame, text="Edytuj", command=self._edit_profile).pack(side='left', padx=2)
+            ttk.Button(button_frame, text="Usuń", command=self._delete_profile).pack(side='left', padx=2)
+            ttk.Button(button_frame, text="Wczytaj wybrany", command=self._load_selected).pack(side='left', padx=10)
+            ttk.Button(button_frame, text="Anuluj", command=self.destroy).pack(side='right', padx=2)
+        def _refresh_list(self):
+            self.profiles_listbox.delete(0, tk.END)
+            for profile in self.profiles:
+                name = profile.get('profile_name', 'Bez nazwy'); company = profile.get('company_name', '')
+                display = f"{name} - {company}" if company else name
+                self.profiles_listbox.insert(tk.END, display)
+        def _add_profile(self):
+            name = simpledialog.askstring("Nowy profil", "Nazwa profilu:", parent=self)
+            if not name: return
+            new_profile = {"profile_name": name, "company_name": "", "company_address": "", "company_nip": "", "company_phone": "", "company_email": "", "company_account": "", "logo": ""}
+            dlg = CompanyEditDialog(self, f"Nowy profil: {name}", new_profile)
+            if getattr(dlg, 'result', None):
+                new_profile.update(dlg.result); new_profile['profile_name'] = name
+                self.profiles.append(new_profile); self._save_profiles(); self._refresh_list()
+                self.profiles_listbox.selection_clear(0, tk.END); self.profiles_listbox.selection_set(tk.END)
+        def _edit_profile(self):
+            selection = self.profiles_listbox.curselection()
+            if not selection: messagebox.showwarning("Uwaga", "Wybierz profil do edycji"); return
+            idx = selection[0]; profile = self.profiles[idx]
+            dlg = CompanyEditDialog(self, f"Edytuj profil: {profile.get('profile_name', '')}", profile.copy())
+            if getattr(dlg, 'result', None):
+                profile_name = profile.get('profile_name', '')
+                self.profiles[idx].update(dlg.result); self.profiles[idx]['profile_name'] = profile_name
+                self._save_profiles(); self._refresh_list(); self.profiles_listbox.selection_set(idx)
+        def _delete_profile(self):
+            selection = self.profiles_listbox.curselection()
+            if not selection: messagebox.showwarning("Uwaga", "Wybierz profil do usunięcia"); return
+            idx = selection[0]; profile = self.profiles[idx]; name = profile.get('profile_name', 'ten profil')
+            if messagebox.askyesno("Potwierdź", f"Czy na pewno usunąć profil '{name}'?"):
+                del self.profiles[idx]; self._save_profiles(); self._refresh_list()
+        def _load_selected(self):
+            selection = self.profiles_listbox.curselection()
+            if not selection: messagebox.showwarning("Uwaga", "Wybierz profil do wczytania"); return
+            idx = selection[0]; self.selected_profile = self.profiles[idx].copy(); self.destroy()
+
 # ---------------- Main App ----------------
 class RoofCalculatorApp:
     def __init__(self, master):
@@ -379,6 +486,11 @@ class RoofCalculatorApp:
         self.materials_db: List[Dict[str,Any]] = []
         self.cost_items: List[Dict[str,Any]] = []
         self.logo_path: Optional[str] = None
+        
+        # History and recent files
+        self.history = CostEstimateHistory() if CostEstimateHistory else None
+        self.recent_files: List[str] = []
+        
         # UI vars
         self.transport_percent = tk.DoubleVar(value=3.0)
         self.transport_vat = tk.IntVar(value=23)
@@ -426,6 +538,7 @@ class RoofCalculatorApp:
             self._load_email_settings()
         else:
             self.email_service = None
+        self._load_local_db(); self._load_settings(); self._load_recent_files()
         # build UI
         self.create_header_bar()
         self.create_menu()
@@ -484,6 +597,7 @@ class RoofCalculatorApp:
         try:
             data = dict(self.settings)
             data["logo"] = self.logo_path
+            data["recent_files"] = self.recent_files[:10]  # Keep last 10 recent files
             with open(p,"w",encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             messagebox.showerror("Błąd zapisu ustawień", f"Nie udało się zapisać ustawień:\n{e}")
@@ -514,6 +628,142 @@ class RoofCalculatorApp:
             'use_tls': self.email_service.use_tls
         }
         self._save_settings()
+    def _load_recent_files(self):
+        """Load list of recently used files from settings."""
+        self.recent_files = self.settings.get("recent_files", [])
+        # Filter out files that no longer exist
+        self.recent_files = [f for f in self.recent_files if os.path.exists(f)]
+
+    def _add_recent_file(self, filepath: str):
+        """Add a file to the list of recent files."""
+        # Remove if already in list
+        if filepath in self.recent_files:
+            self.recent_files.remove(filepath)
+        # Add to front
+        self.recent_files.insert(0, filepath)
+        # Keep only last 10
+        self.recent_files = self.recent_files[:10]
+        # Save settings
+        self._save_settings()
+
+    def save_history_snapshot(self, description: str):
+        """Save current state to history."""
+        if not self.history:
+            return
+        
+        # Prepare metadata
+        metadata = {
+            'client': self.client_cb.get() if hasattr(self, 'client_cb') else '',
+            'invoice_number': self.invoice_number.get(),
+            'invoice_date': self.invoice_date.get(),
+            'quote_name': self.quote_name.get(),
+            'transport_percent': float(self.transport_percent.get()),
+            'transport_vat': int(self.transport_vat.get())
+        }
+        
+        # Add entry to history
+        self.history.add_entry(description, self.cost_items.copy(), metadata)
+
+    def show_history(self):
+        """Open the history dialog."""
+        if not self.history or not HistoryDialog:
+            messagebox.showinfo("Historia niedostępna", 
+                              "Funkcja historii nie jest dostępna.")
+            return
+        
+        if not self.history.get_all_entries():
+            messagebox.showinfo("Brak historii", 
+                              "Brak zapisanych wersji w historii.\n\n"
+                              "Historia jest zapisywana automatycznie przy zapisie kosztorysu.")
+            return
+        
+        def on_restore(entry):
+            """Restore a version from history."""
+            if messagebox.askyesno("Potwierdź przywrócenie", 
+                                  "Aktualne zmiany zostaną utracone. Kontynuować?"):
+                # Restore items
+                self.cost_items = entry.items_snapshot.copy()
+                
+                # Restore metadata if available
+                if entry.metadata:
+                    if 'client' in entry.metadata and hasattr(self, 'client_cb'):
+                        self.client_cb.set(entry.metadata['client'])
+                    if 'invoice_number' in entry.metadata:
+                        self.invoice_number.set(entry.metadata['invoice_number'])
+                    if 'invoice_date' in entry.metadata:
+                        self.invoice_date.set(entry.metadata['invoice_date'])
+                    if 'quote_name' in entry.metadata:
+                        self.quote_name.set(entry.metadata['quote_name'])
+                    if 'transport_percent' in entry.metadata:
+                        self.transport_percent.set(entry.metadata['transport_percent'])
+                    if 'transport_vat' in entry.metadata:
+                        self.transport_vat.set(entry.metadata['transport_vat'])
+                
+                # Refresh UI
+                self._refresh_cost_ui()
+                
+                # Save snapshot of restoration
+                self.save_history_snapshot(f"Przywrócono wersję {entry.version}")
+                
+                messagebox.showinfo("Przywrócono", 
+                                  f"Przywrócono wersję {entry.version} z historii.")
+        
+        dialog = HistoryDialog(self.master, self.history, on_restore)
+
+    def create_from_existing(self):
+        """Open dialog to create estimate from existing file or template."""
+        if not CreateFromExistingDialog:
+            messagebox.showinfo("Funkcja niedostępna", 
+                              "Funkcja tworzenia z istniejącego nie jest dostępna.")
+            return
+        
+        def on_create(data):
+            """Handle creation of new estimate from data."""
+            if self.cost_items or (hasattr(self, "comment_text") and 
+                                  self.comment_text.get("1.0", "end").strip()):
+                if not messagebox.askyesno("Zastąp kosztorys", 
+                                          "Aktualny kosztorys zostanie zastąpiony. Kontynuować?"):
+                    return
+            
+            # Load data
+            self.cost_items = data.get('items', [])
+            
+            # Set client
+            if 'client' in data and hasattr(self, 'client_cb'):
+                self.client_cb.set(data['client'])
+            
+            # Set transport settings
+            if 'transport_percent' in data:
+                self.transport_percent.set(data['transport_percent'])
+            if 'transport_vat' in data:
+                self.transport_vat.set(data['transport_vat'])
+            
+            # Set quote name
+            if 'quote_name' in data:
+                self.quote_name.set(data['quote_name'])
+            
+            # Set comment
+            if 'comment' in data and hasattr(self, 'comment_text'):
+                self.comment_text.delete("1.0", "end")
+                self.comment_text.insert("1.0", data['comment'])
+            
+            # Get new invoice number
+            seq = self._get_next_seq_and_set()
+            year = datetime.now().year
+            self.invoice_number.set(f"{year}-{seq:03d}")
+            
+            # Refresh UI
+            self._refresh_cost_ui()
+            
+            # Save history snapshot
+            quote_name = data.get('quote_name', 'nowy')
+            self.save_history_snapshot(f"Utworzono z: {quote_name}")
+            
+            messagebox.showinfo("Utworzono", 
+                              "Utworzono nowy kosztorys na podstawie istniejącego.")
+        
+        dialog = CreateFromExistingDialog(self.master, self.recent_files, on_create)
+
 
     # invoice numbering using settings.json
     def _get_next_seq_and_set(self) -> int:
@@ -631,6 +881,9 @@ Wersja: 4.7
         file_menu.add_command(label="Nowy kosztorys", command=self.new_cost_estimate, accelerator="Ctrl+N")
         file_menu.add_command(label="Zapisz kosztorys (.cost.json)", command=self.save_costfile, accelerator="Ctrl+S")
         file_menu.add_command(label="Wczytaj kosztorys (.cost.json)", command=self.load_costfile, accelerator="Ctrl+O")
+        file_menu.add_separator()
+        file_menu.add_command(label="Utwórz z istniejącego...", command=self.create_from_existing)
+        file_menu.add_command(label="Historia zmian...", command=self.show_history)
         file_menu.add_separator()
         file_menu.add_command(label="Profile firmy...", command=self.open_company_profiles_dialog)
         file_menu.add_separator()
@@ -1793,6 +2046,12 @@ Wersja: 4.7
             except Exception:
                 pass
             messagebox.showinfo("Zapisano", f"Zapisano kosztorys: {path}")
+            
+            # Add to recent files
+            self._add_recent_file(path)
+            
+            # Save history snapshot
+            self.save_history_snapshot(f"Zapisano: {os.path.basename(path)}")
         except Exception as e:
             messagebox.showerror("Błąd zapisu", f"Nie udało się zapisać kosztorysu:\n{e}")
 
@@ -1831,6 +2090,12 @@ Wersja: 4.7
             pass
         self._refresh_cost_ui()
         messagebox.showinfo("Wczytano", f"Wczytano kosztorys: {path}")
+        
+        # Add to recent files
+        self._add_recent_file(path)
+        
+        # Save history snapshot
+        self.save_history_snapshot(f"Wczytano: {os.path.basename(path)}")
 
     # ==================== NEW TABS ====================
     
